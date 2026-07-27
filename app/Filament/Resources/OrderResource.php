@@ -292,6 +292,7 @@ class OrderResource extends Resource
 
                 Actions\ViewAction::make()->label('Detail'),
                 Actions\EditAction::make(),
+                Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Actions\BulkActionGroup::make([
@@ -328,6 +329,18 @@ class OrderResource extends Resource
     public static function canAccess(): bool
     {
         return auth()->user()?->can('view-orders') ?? false;
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->hasRole(\App\Enums\UserRole::Admin->value));
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        $user = auth()->user();
+        return $user && ($user->isSuperAdmin() || $user->hasRole(\App\Enums\UserRole::Admin->value));
     }
 
     public static function getPages(): array
