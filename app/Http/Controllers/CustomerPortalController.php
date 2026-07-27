@@ -31,7 +31,6 @@ class CustomerPortalController extends Controller
     public function catalog(): View
     {
         $products   = Product::with('category')
-            ->where('stock', '>', 0)
             ->latest()
             ->paginate(20);
 
@@ -81,7 +80,6 @@ class CustomerPortalController extends Controller
     {
         $products   = Product::with('category')
             ->whereHas('category', fn ($q) => $q->where('slug', 'gas-lpg'))
-            ->where('stock', '>', 0)
             ->orderBy('name')
             ->get();
         $categories = Category::orderBy('name')->get();

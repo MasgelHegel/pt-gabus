@@ -87,7 +87,7 @@
         /* ── CTA Pesan Gas ── */
         .btn-order {
             display: inline-flex; align-items: center;
-            gap: .55rem; margin-bottom: 2rem;
+            gap: .55rem;
             padding: .85rem 2rem;
             border-radius: 14px;
             background: linear-gradient(135deg, #3b82f6, #6366f1);
@@ -101,6 +101,22 @@
         .btn-order:active { transform: scale(.97); }
 
         .btn-order svg { width: 18px; height: 18px; }
+
+        .btn-portal {
+            display: inline-flex; align-items: center;
+            gap: .55rem;
+            padding: .85rem 2rem;
+            border-radius: 14px;
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            color: #475569; font-weight: 700; font-size: 1rem;
+            text-decoration: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,.05);
+            transition: background .15s, border-color .15s, transform .1s;
+        }
+        .btn-portal:hover { background: #f8fafc; border-color: #cbd5e1; color: #1e293b; }
+        .btn-portal:active { transform: scale(.97); }
+        .btn-portal svg { width: 18px; height: 18px; }
 
         /* ── Divider ── */
         .divider-label {
@@ -221,13 +237,21 @@
     <p class="tagline">Pesan gas LPG langsung dari distributor resmi</p>
 
     {{-- CTA Customer --}}
-    <a href="{{ route('order.create') }}" class="btn-order">
-        <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round"
-                d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/>
-        </svg>
-        Pesan Gas Sekarang
-    </a>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 2rem; width: 100%;">
+        <a href="{{ route('order.create') }}" class="btn-order">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/>
+            </svg>
+            Pesan Gas Sekarang
+        </a>
+        <a href="{{ route('portal.login') }}" class="btn-portal">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"/>
+            </svg>
+            Login Customer
+        </a>
+    </div>
 
     {{-- Divider --}}
     <div class="divider-label" style="width:100%">

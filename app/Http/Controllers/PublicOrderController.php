@@ -22,7 +22,6 @@ class PublicOrderController extends Controller
     {
         $products = Product::with('category')
             ->whereHas('category', fn ($q) => $q->where('slug', 'gas-lpg'))
-            ->where('stock', '>', 0)
             ->orderBy('name')
             ->get();
 

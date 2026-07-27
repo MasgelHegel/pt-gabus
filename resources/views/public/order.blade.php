@@ -34,6 +34,19 @@ nav{
   border-radius:999px;letter-spacing:.02em;
   box-shadow:0 2px 8px rgba(37,99,235,.35);
 }
+.nav-actions{display:flex;align-items:center;gap:.85rem}
+.nav-btn-link{
+  font-size:.85rem;font-weight:600;color:var(--text);
+  text-decoration:none;transition:color .15s;
+}
+.nav-btn-link:hover{color:var(--blue2)}
+.nav-btn-login{
+  font-size:.82rem;font-weight:700;color:var(--blue2);
+  border:1.5px solid var(--blue2);padding:.4rem 1rem;
+  border-radius:10px;text-decoration:none;
+  transition:background .15s,color .15s;
+}
+.nav-btn-login:hover{background:var(--blue2);color:var(--white)}
 
 /* HERO */
 .hero{
@@ -155,7 +168,22 @@ nav{
     <div class="nav-logo"><img src="{{ asset('image/logo.jpg') }}" alt="Logo"></div>
     <div class="nav-name">PT Gabus <span>Gas Trusss</span></div>
   </div>
-  <div class="nav-badge">🔥 Pesan Sekarang</div>
+  <div class="nav-actions">
+    @auth
+      @if(auth()->user()->isCustomer())
+        <a href="{{ route('portal.catalog') }}" class="nav-btn-link">Portal Saya</a>
+        <form method="POST" action="{{ route('portal.logout') }}" style="display: inline;">
+          @csrf
+          <button type="submit" class="nav-btn-link" style="background: none; border: none; cursor: pointer; font-family: inherit; font-weight: 600;">Logout</button>
+        </form>
+      @else
+        <a href="/admin" class="nav-btn-link">Admin Panel</a>
+      @endif
+    @else
+      <a href="{{ route('portal.login') }}" class="nav-btn-login">Login Customer</a>
+    @endauth
+    <div class="nav-badge">🔥 Pesan Sekarang</div>
+  </div>
 </nav>
 
 {{-- HERO --}}
