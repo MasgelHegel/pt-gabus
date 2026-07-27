@@ -33,4 +33,21 @@ class JournalLine extends Model
     {
         return $this->belongsTo(Account::class);
     }
+
+    protected static function booted(): void
+    {
+        static::created(function (JournalLine $line) {
+            $account = $line->account()->first();
+            if ($account) {
+                $debit = (float) $line->debit;
+                $credit = (float) $line->credit;
+
+                if ($account->type === \App\Enums\AccountType::Asset || $account->type === \App\Enums\AccountType::Expense) {
+                    $account->increment('balance', $debit - $credit);
+                } else {
+                    $account->increment('balance', $credit - $debit);
+                }
+            }
+        });
+    }
 }

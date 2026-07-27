@@ -64,4 +64,24 @@ class Invoice extends Model
     {
         return $this->hasOne(Payment::class)->latestOfMany();
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Invoice $invoice) {
+            if ($invoice->status !== \App\Enums\InvoiceStatus::Paid && $invoice->status !== \App\Enums\InvoiceStatus::Cancelled) {
+                \App\Models\Customer::where('id', $invoice->customer_id)
+                    ->decrement('piutang_balance', (float) $invoice->total_amount);
+            }
+
+            \App\Models\JournalEntry::where('reference', $invoice->invoice_number)->get()->each(function ($journal) {
+                $journal->delete();
+            });
+
+            $invoice->payments()->get()->each(function ($payment) {
+                $payment->delete();
+            });
+
+            $invoice->items()->delete();
+        });
+    }
 }

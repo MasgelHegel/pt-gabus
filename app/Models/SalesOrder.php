@@ -76,4 +76,23 @@ class SalesOrder extends Model
     {
         return $this->hasMany(PurchaseOrder::class);
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (SalesOrder $salesOrder) {
+            $salesOrder->invoice()->withTrashed()->get()->each(function ($invoice) {
+                $invoice->forceDelete();
+            });
+
+            $salesOrder->shipment()->get()->each(function ($shipment) {
+                $shipment->delete();
+            });
+
+            if ($salesOrder->order) {
+                $salesOrder->order->update(['status' => \App\Enums\OrderStatus::SalesReviewed]);
+            }
+
+            $salesOrder->items()->delete();
+        });
+    }
 }

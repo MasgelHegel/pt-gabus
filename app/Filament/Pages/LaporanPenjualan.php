@@ -118,8 +118,16 @@ class LaporanPenjualan extends Page implements HasTable
                             ->when($data['until'], fn ($q, $date) => $q->whereDate('invoice_date', '<=', $date));
                     }),
             ])
-            ->actions([])
-            ->bulkActions([])
+            ->actions([
+                \Filament\Tables\Actions\DeleteAction::make()
+                    ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false),
+            ])
+            ->bulkActions([
+                \Filament\Tables\Actions\BulkActionGroup::make([
+                    \Filament\Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false),
+                ]),
+            ])
             ->paginated(true);
     }
 }

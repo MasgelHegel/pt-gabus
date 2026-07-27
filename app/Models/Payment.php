@@ -64,4 +64,18 @@ class Payment extends Model
         }
         return null;
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Payment $payment) {
+            if ($payment->status === \App\Enums\PaymentStatus::Verified) {
+                \App\Models\Customer::where('id', $payment->customer_id)
+                    ->increment('piutang_balance', (float) $payment->amount);
+            }
+
+            \App\Models\JournalEntry::where('reference', $payment->payment_number)->get()->each(function ($journal) {
+                $journal->delete();
+            });
+        });
+    }
 }

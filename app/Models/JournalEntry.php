@@ -34,4 +34,26 @@ class JournalEntry extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (JournalEntry $journalEntry) {
+            foreach ($journalEntry->lines()->with('account')->get() as $line) {
+                $account = $line->account;
+                if ($account) {
+                    if ($line->debit > 0) {
+                        $account->decrement('balance', (float) $line->debit);
+                    }
+                    if ($line->credit > 0) {
+                        if ($account->type === \App\Enums\AccountType::Asset || $account->type === \App\Enums\AccountType::Expense) {
+                            $account->increment('balance', (float) $line->credit);
+                        } else {
+                            $account->decrement('balance', (float) $line->credit);
+                        }
+                    }
+                }
+            }
+            $journalEntry->lines()->delete();
+        });
+    }
 }

@@ -45,4 +45,17 @@ class Shipment extends Model
     {
         return $this->status === 'shipped' && $this->customer_confirmed_at === null;
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Shipment $shipment) {
+            foreach ($shipment->items()->get() as $item) {
+                \App\Models\Product::where('id', $item->product_id)->increment('stock', $item->quantity);
+            }
+
+            \App\Models\StockMovement::where('reference', $shipment->shipment_number)->delete();
+
+            $shipment->items()->delete();
+        });
+    }
 }

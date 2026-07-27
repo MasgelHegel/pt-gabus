@@ -215,8 +215,13 @@ class PaymentResource extends Resource
                             ->title('Pembayaran Ditolak')
                             ->warning()->send();
                     }),
+                Actions\DeleteAction::make(),
             ])
-            ->bulkActions([])
+            ->bulkActions([
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
+                ]),
+            ])
             ->poll('5s');
     }
 
@@ -239,6 +244,16 @@ class PaymentResource extends Resource
     public static function canAccess(): bool
     {
         return auth()->user()?->can('view-payments') ?? false;
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return auth()->user()?->isSuperAdmin() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->isSuperAdmin() ?? false;
     }
 
     public static function getPages(): array
