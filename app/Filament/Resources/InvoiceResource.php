@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Enums\InvoiceStatus;
+use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Filament\Resources\InvoiceResource\Pages;
 use App\Models\Account;
+use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\JournalEntry;
 use App\Models\Payment;
 use App\Services\OrderWorkflowService;
 use Filament\Actions;
@@ -20,6 +23,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 
 class InvoiceResource extends Resource
 {
@@ -296,6 +300,58 @@ class InvoiceResource extends Resource
 
                 // ── DETAIL ────────────────────────────────────────────────
                 Actions\ViewAction::make()->label('Detail'),
+
+                // ── HAPUS INVOICE ─────────────────────────────────────────
+                Actions\Action::make('delete_invoice')
+                    ->label('Hapus')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false)
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (Invoice $r): string => "Hapus Invoice {$r->invoice_number}?")
+                    ->modalDescription('Semua data terkait (payment, jurnal, piutang) akan dihapus permanen. Aksi ini tidak bisa dibatalkan.')
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                    ->action(function (Invoice $record): void {
+                        DB::transaction(function () use ($record): void {
+                            // 1. Kembalikan piutang customer jika invoice belum lunas
+                            if ($record->status !== InvoiceStatus::Paid && $record->status !== InvoiceStatus::Cancelled) {
+                                Customer::where('id', $record->customer_id)
+                                    ->decrement('piutang_balance', (float) $record->total_amount);
+                            }
+
+                            // 2. Hapus jurnal terkait invoice ini
+                            JournalEntry::where('reference', $record->invoice_number)->each(function ($journal): void {
+                                $journal->lines()->delete();
+                                $journal->forceDelete();
+                            });
+
+                            // 3. Hapus payment terkait
+                            $record->payments()->each(function ($payment): void {
+                                // Hapus jurnal payment juga
+                                JournalEntry::where('reference', $payment->payment_number)->each(function ($journal): void {
+                                    $journal->lines()->delete();
+                                    $journal->forceDelete();
+                                });
+                                $payment->forceDelete();
+                            });
+
+                            // 4. Hapus invoice items
+                            $record->items()->delete();
+
+                            // 5. Reset status SO terkait agar bisa dipakai lagi
+                            if ($record->salesOrder) {
+                                $record->salesOrder->update(['status' => \App\Enums\SalesOrderStatus::Processing]);
+                            }
+
+                            // 6. Hapus invoice
+                            $record->forceDelete();
+                        });
+
+                        Notification::make()
+                            ->title('Invoice dihapus permanen')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Actions\BulkActionGroup::make([
@@ -315,6 +371,49 @@ class InvoiceResource extends Resource
                             Notification::make()
                                 ->title("{$count} invoice ditandai jatuh tempo")
                                 ->success()->send();
+                        }),
+
+                    Actions\BulkAction::make('bulk_delete')
+                        ->label('Hapus Semua Terpilih')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false)
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus Invoice Terpilih?')
+                        ->modalDescription('Semua invoice yang dipilih beserta payment & jurnal terkait akan dihapus permanen.')
+                        ->modalSubmitActionLabel('Ya, Hapus Semua')
+                        ->action(function ($records): void {
+                            $count = 0;
+                            DB::transaction(function () use ($records, &$count): void {
+                                foreach ($records as $record) {
+                                    if ($record->status !== InvoiceStatus::Paid && $record->status !== InvoiceStatus::Cancelled) {
+                                        Customer::where('id', $record->customer_id)
+                                            ->decrement('piutang_balance', (float) $record->total_amount);
+                                    }
+
+                                    JournalEntry::where('reference', $record->invoice_number)->each(function ($j): void {
+                                        $j->lines()->delete();
+                                        $j->forceDelete();
+                                    });
+
+                                    $record->payments()->each(function ($payment): void {
+                                        JournalEntry::where('reference', $payment->payment_number)->each(function ($j): void {
+                                            $j->lines()->delete();
+                                            $j->forceDelete();
+                                        });
+                                        $payment->forceDelete();
+                                    });
+
+                                    $record->items()->delete();
+                                    $record->forceDelete();
+                                    $count++;
+                                }
+                            });
+
+                            Notification::make()
+                                ->title("{$count} invoice dihapus permanen")
+                                ->success()
+                                ->send();
                         }),
                 ]),
             ])

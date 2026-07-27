@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Enums\OrderStatus;
 use App\Enums\SalesOrderStatus;
 use App\Filament\Resources\SalesOrderResource\Pages;
+use App\Models\Customer;
+use App\Models\JournalEntry;
 use App\Models\SalesOrder;
 use App\Models\Supplier;
 use App\Services\OrderWorkflowService;
@@ -236,8 +239,141 @@ class SalesOrderResource extends Resource
                     }),
 
                 Actions\ViewAction::make()->label('Detail'),
+
+                // ── HAPUS SO ──────────────────────────────────────────────
+                Actions\Action::make('delete_so')
+                    ->label('Hapus')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false)
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (SalesOrder $r): string => "Hapus SO {$r->so_number}?")
+                    ->modalDescription('SO beserta invoice, payment, jurnal, shipment, dan PO terkait akan dihapus permanen. Order asal akan dikembalikan ke status Submitted.')
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                    ->action(function (SalesOrder $record): void {
+                        DB::transaction(function () use ($record): void {
+                            // 1. Hapus invoice & turunannya
+                            if ($record->invoice) {
+                                $invoice = $record->invoice;
+
+                                // Kembalikan piutang jika invoice belum lunas
+                                if ($invoice->status !== InvoiceStatus::Paid && $invoice->status !== InvoiceStatus::Cancelled) {
+                                    Customer::where('id', $invoice->customer_id)
+                                        ->decrement('piutang_balance', (float) $invoice->total_amount);
+                                }
+
+                                // Hapus jurnal invoice
+                                JournalEntry::where('reference', $invoice->invoice_number)->each(function ($j): void {
+                                    $j->lines()->delete();
+                                    $j->forceDelete();
+                                });
+
+                                // Hapus payment & jurnal payment
+                                $invoice->payments()->each(function ($payment): void {
+                                    JournalEntry::where('reference', $payment->payment_number)->each(function ($j): void {
+                                        $j->lines()->delete();
+                                        $j->forceDelete();
+                                    });
+                                    $payment->forceDelete();
+                                });
+
+                                $invoice->items()->delete();
+                                $invoice->forceDelete();
+                            }
+
+                            // 2. Hapus shipment
+                            $record->shipment?->forceDelete();
+
+                            // 3. Hapus PO & PO items
+                            $record->purchaseOrders()->each(function ($po): void {
+                                $po->items()->delete();
+                                $po->forceDelete();
+                            });
+
+                            // 4. Hapus SO items
+                            $record->items()->delete();
+
+                            // 5. Kembalikan Order ke status Submitted
+                            if ($record->order) {
+                                $record->order->update(['status' => OrderStatus::Submitted]);
+                            }
+
+                            // 6. Hapus SO
+                            $record->forceDelete();
+                        });
+
+                        Notification::make()
+                            ->title('Sales Order dihapus permanen')
+                            ->body('Semua data terkait (invoice, payment, jurnal) telah dihapus. Order dikembalikan ke status Submitted.')
+                            ->success()
+                            ->send();
+                    }),
             ])
-            ->bulkActions([])
+            ->bulkActions([
+                Actions\BulkActionGroup::make([
+                    Actions\BulkAction::make('bulk_delete_so')
+                        ->label('Hapus Semua Terpilih')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false)
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus SO Terpilih?')
+                        ->modalDescription('Semua SO yang dipilih beserta invoice, payment, jurnal, dan shipment akan dihapus permanen.')
+                        ->modalSubmitActionLabel('Ya, Hapus Semua')
+                        ->action(function ($records): void {
+                            $count = 0;
+                            DB::transaction(function () use ($records, &$count): void {
+                                foreach ($records as $record) {
+                                    if ($record->invoice) {
+                                        $invoice = $record->invoice;
+
+                                        if ($invoice->status !== \App\Enums\InvoiceStatus::Paid && $invoice->status !== \App\Enums\InvoiceStatus::Cancelled) {
+                                            Customer::where('id', $invoice->customer_id)
+                                                ->decrement('piutang_balance', (float) $invoice->total_amount);
+                                        }
+
+                                        JournalEntry::where('reference', $invoice->invoice_number)->each(function ($j): void {
+                                            $j->lines()->delete();
+                                            $j->forceDelete();
+                                        });
+
+                                        $invoice->payments()->each(function ($payment): void {
+                                            JournalEntry::where('reference', $payment->payment_number)->each(function ($j): void {
+                                                $j->lines()->delete();
+                                                $j->forceDelete();
+                                            });
+                                            $payment->forceDelete();
+                                        });
+
+                                        $invoice->items()->delete();
+                                        $invoice->forceDelete();
+                                    }
+
+                                    $record->shipment?->forceDelete();
+
+                                    $record->purchaseOrders()->each(function ($po): void {
+                                        $po->items()->delete();
+                                        $po->forceDelete();
+                                    });
+
+                                    $record->items()->delete();
+
+                                    if ($record->order) {
+                                        $record->order->update(['status' => OrderStatus::Submitted]);
+                                    }
+
+                                    $record->forceDelete();
+                                    $count++;
+                                }
+                            });
+
+                            Notification::make()
+                                ->title("{$count} Sales Order dihapus permanen")
+                                ->success()
+                                ->send();
+                        }),
+                ]),
+            ])
             ->poll('5s');
     }
 
