@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             ChartOfAccountsSeeder::class,
             MasterDataSeeder::class,
+            GasProductSeeder::class,
         ]);
     }
 }
