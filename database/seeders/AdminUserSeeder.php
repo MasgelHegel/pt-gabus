@@ -139,10 +139,10 @@ class AdminUserSeeder extends Seeder
         );
         $customerUser->syncRoles([UserRole::Customer->value]);
 
-        Customer::firstOrCreate(
-            ['user_id' => $customerUser->id],
+        Customer::withTrashed()->firstOrCreate(
+            ['code' => 'CUST-001'],
             [
-                'code'            => 'CUST-001',
+                'user_id'         => $customerUser->id,
                 'name'            => 'Customer Demo',
                 'company_name'    => 'PT Mitra Sejahtera',
                 'email'           => 'customer@gabus.test',
