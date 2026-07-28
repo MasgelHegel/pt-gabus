@@ -334,13 +334,13 @@ class OrderResource extends Resource
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
     {
         $user = auth()->user();
-        return $user && ($user->isSuperAdmin() || $user->hasRole(\App\Enums\UserRole::Admin->value));
+        return $user && ($user->isSuperAdmin() || $user->hasRole(\App\Enums\UserRole::Accounting->value));
     }
 
     public static function canDeleteAny(): bool
     {
         $user = auth()->user();
-        return $user && ($user->isSuperAdmin() || $user->hasRole(\App\Enums\UserRole::Admin->value));
+        return $user && ($user->isSuperAdmin() || $user->hasRole(\App\Enums\UserRole::Accounting->value));
     }
 
     public static function getPages(): array

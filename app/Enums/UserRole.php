@@ -10,6 +10,7 @@ enum UserRole: string
     case Admin      = 'admin';
     case Sales      = 'sales';
     case Customer   = 'customer';
+    case Accounting = 'accounting';
     // Legacy / extra
     case Manager    = 'manager';
     case Staff      = 'staff';
@@ -23,6 +24,7 @@ enum UserRole: string
             self::Admin      => 'Admin',
             self::Sales      => 'Sales',
             self::Customer   => 'Customer',
+            self::Accounting => 'Accounting',
             self::Manager    => 'Manager',
             self::Staff      => 'Staff',
             self::Cashier    => 'Kasir',
@@ -37,6 +39,7 @@ enum UserRole: string
             self::Admin      => 'warning',
             self::Sales      => 'info',
             self::Customer   => 'success',
+            self::Accounting => 'primary',
             self::Manager    => 'primary',
             self::Staff      => 'gray',
             self::Cashier    => 'success',
@@ -60,6 +63,6 @@ enum UserRole: string
 
     public function isAdminRole(): bool
     {
-        return in_array($this, [self::SuperAdmin, self::Admin, self::Sales, self::Manager, self::Staff], true);
+        return in_array($this, [self::SuperAdmin, self::Admin, self::Sales, self::Manager, self::Staff, self::Accounting], true);
     }
 }

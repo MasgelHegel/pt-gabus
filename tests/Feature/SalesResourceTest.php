@@ -108,8 +108,15 @@ test('sales representative can only view their own sales orders in SalesOrderRes
         ->assertCanSeeTableRecords([$soHegel])
         ->assertCanNotSeeTableRecords([$soBudi]);
 
-    $admin = User::role(UserRole::Admin->value)->first();
-    Livewire\Livewire::actingAs($admin)
+    $accounting = User::create([
+        'name' => 'Accounting User',
+        'email' => 'accounting_test@gabus.test',
+        'password' => Hash::make('password'),
+        'status' => UserStatus::Active,
+    ]);
+    $accounting->assignRole(UserRole::Accounting->value);
+
+    Livewire\Livewire::actingAs($accounting)
         ->test(App\Filament\Resources\SalesOrderResource\Pages\ListSalesOrders::class)
         ->assertCanSeeTableRecords([$soBudi, $soHegel]);
 });

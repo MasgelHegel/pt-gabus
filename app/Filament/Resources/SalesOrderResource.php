@@ -258,8 +258,8 @@ class SalesOrderResource extends Resource
             return $query;
         }
 
-        // SuperAdmin dan Admin lihat semua SO
-        if ($user->isSuperAdmin() || $user->hasRole(\App\Enums\UserRole::Admin->value)) {
+        // SuperAdmin dan Admin/Accounting lihat semua SO
+        if ($user->isSuperAdmin() || $user->hasAnyRole([\App\Enums\UserRole::Admin->value, \App\Enums\UserRole::Accounting->value])) {
             return $query;
         }
 
@@ -279,7 +279,7 @@ class SalesOrderResource extends Resource
         ]);
         $user = auth()->user();
 
-        if ($user && $user->hasRole(\App\Enums\UserRole::Sales->value) && !$user->isSuperAdmin() && !$user->hasRole(\App\Enums\UserRole::Admin->value)) {
+        if ($user && $user->hasRole(\App\Enums\UserRole::Sales->value) && !$user->isSuperAdmin() && !$user->hasAnyRole([\App\Enums\UserRole::Admin->value, \App\Enums\UserRole::Accounting->value])) {
             $query->where('sales_id', $user->id);
         }
 

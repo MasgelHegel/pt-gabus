@@ -77,7 +77,8 @@ class RoleResource extends Resource
                         ->default('web')
                         ->required()
                         ->maxLength(125)
-                        ->disabled(),
+                        ->disabled()
+                        ->dehydrated(),
                 ]),
 
             Section::make('Izin Akses')
@@ -86,8 +87,11 @@ class RoleResource extends Resource
                 ->schema([
                     Forms\Components\CheckboxList::make('permissions')
                         ->label('')
-                        ->relationship('permissions', 'name')
-                        ->options(Permission::orderBy('name')->pluck('name', 'name'))
+                        ->relationship(
+                            name: 'permissions',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: fn (Builder $query) => $query->orderBy('name'),
+                        )
                         ->columns(3)
                         ->gridDirection('row')
                         ->searchable()
@@ -116,6 +120,7 @@ class RoleResource extends Resource
                         UserRole::Customer->value   => 'success',
                         UserRole::Manager->value    => 'primary',
                         UserRole::Cashier->value    => 'success',
+                        UserRole::Accounting->value => 'primary',
                         default                     => 'gray',
                     }),
 

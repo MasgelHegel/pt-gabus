@@ -95,7 +95,7 @@ class AdminUserSeeder extends Seeder
         $admin->syncRoles([UserRole::Admin->value]);
 
         // 3. Sales
-        $sales = User::firstOrCreate(
+        $sales = User::withTrashed()->firstOrCreate(
             ['email' => 'sales@gabus.test'],
             [
                 'name'              => 'Budi Sales Executive',
@@ -109,8 +109,23 @@ class AdminUserSeeder extends Seeder
         );
         $sales->syncRoles([UserRole::Sales->value]);
 
-        // 4. Customer User
-        $customerUser = User::firstOrCreate(
+        // 4. Accounting
+        $accounting = User::withTrashed()->firstOrCreate(
+            ['email' => 'accounting@gabus.test'],
+            [
+                'name'              => 'Accounting Staff',
+                'password'          => Hash::make('password'),
+                'phone'             => '+62-812-0000-0005',
+                'status'            => UserStatus::Active,
+                'company_id'        => $company->id,
+                'branch_id'         => $branch->id,
+                'email_verified_at' => now(),
+            ]
+        );
+        $accounting->syncRoles([UserRole::Accounting->value]);
+
+        // 5. Customer User
+        $customerUser = User::withTrashed()->firstOrCreate(
             ['email' => 'customer@gabus.test'],
             [
                 'name'              => 'Customer Demo',
@@ -138,6 +153,6 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
-        $this->command->info('Users seeded: superadmin@gabus.test, admin@gabus.test, sales@gabus.test, customer@gabus.test');
+        $this->command->info('Users seeded: superadmin@gabus.test, admin@gabus.test, sales@gabus.test, accounting@gabus.test, customer@gabus.test');
     }
 }

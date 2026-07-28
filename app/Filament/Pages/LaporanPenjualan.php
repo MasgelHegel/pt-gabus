@@ -119,12 +119,12 @@ class LaporanPenjualan extends Page implements HasTable
                     }),
             ])
             ->actions([
-                \Filament\Tables\Actions\DeleteAction::make()
+                \Filament\Actions\DeleteAction::make()
                     ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false),
             ])
             ->bulkActions([
-                \Filament\Tables\Actions\BulkActionGroup::make([
-                    \Filament\Tables\Actions\DeleteBulkAction::make()
+                \Filament\Actions\BulkActionGroup::make([
+                    \Filament\Actions\DeleteBulkAction::make()
                         ->visible(fn () => auth()->user()?->isSuperAdmin() ?? false),
                 ]),
             ])

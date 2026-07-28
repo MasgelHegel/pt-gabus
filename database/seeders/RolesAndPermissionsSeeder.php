@@ -100,9 +100,30 @@ class RolesAndPermissionsSeeder extends Seeder
         $superAdmin->syncPermissions($permissions);
 
         // ----------------------------------------------------------------
-        // Admin — operational full access, no system/backup
+        // Admin — operational full access, finance restricted (only Invoices)
         // ----------------------------------------------------------------
         $adminPerms = [
+            'view-dashboard',
+            'view-customers',   'manage-customers',
+            'view-suppliers',   'manage-suppliers',
+            'view-products',    'manage-products',
+            'view-categories',  'manage-categories',
+            'view-warehouses',  'manage-warehouses',
+            'view-stock',       'manage-stock',
+            'view-purchase-orders', 'manage-purchase-orders',
+            'view-invoices',    'manage-invoices',
+            'view-shipments',   'manage-shipments',
+            'view-reports',     'export-reports',
+            'view-activity-logs',
+        ];
+
+        $admin = Role::firstOrCreate(['name' => UserRole::Admin->value, 'guard_name' => 'web']);
+        $admin->syncPermissions($adminPerms);
+
+        // ----------------------------------------------------------------
+        // Accounting — same as Admin, but full finance & cash access
+        // ----------------------------------------------------------------
+        $accountingPerms = [
             'view-dashboard',
             'view-customers',   'manage-customers',
             'view-suppliers',   'manage-suppliers',
@@ -122,22 +143,19 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-activity-logs',
         ];
 
-        $admin = Role::firstOrCreate(['name' => UserRole::Admin->value, 'guard_name' => 'web']);
-        $admin->syncPermissions($adminPerms);
+        $accounting = Role::firstOrCreate(['name' => UserRole::Accounting->value, 'guard_name' => 'web']);
+        $accounting->syncPermissions($accountingPerms);
 
         // ----------------------------------------------------------------
-        // Sales — order + customer + product + stock + invoice view
+        // Sales — customer, operasional sales, reports
         // ----------------------------------------------------------------
         $salesPerms = [
             'view-dashboard',
             'view-customers',   'manage-customers',
-            'view-products',    'manage-products',
-            'view-categories',
-            'view-stock',
             'view-orders',      'manage-orders',
             'view-sales-orders', 'manage-sales-orders',
-            'view-invoices',
-            'view-shipments',   'manage-shipments',
+            'view-payments',    'manage-payments',  'verify-payments',
+            'view-reports',
         ];
 
         $sales = Role::firstOrCreate(['name' => UserRole::Sales->value ?? 'sales', 'guard_name' => 'web']);
@@ -157,6 +175,6 @@ class RolesAndPermissionsSeeder extends Seeder
         $customer = Role::firstOrCreate(['name' => UserRole::Customer->value ?? 'customer', 'guard_name' => 'web']);
         $customer->syncPermissions($customerPerms);
 
-        $this->command->info('Roles & permissions seeded: super_admin, admin, sales, customer');
+        $this->command->info('Roles & permissions seeded: super_admin, admin, accounting, sales, customer');
     }
 }

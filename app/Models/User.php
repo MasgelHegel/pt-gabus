@@ -135,6 +135,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
             UserRole::SuperAdmin->value,
             UserRole::Admin->value,
             UserRole::Sales->value,
+            UserRole::Accounting->value,
         ]);
     }
 

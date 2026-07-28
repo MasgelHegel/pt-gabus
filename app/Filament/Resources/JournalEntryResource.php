@@ -108,6 +108,11 @@ class JournalEntryResource extends Resource
             ->striped();
     }
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->can('view-journals') ?? false;
+    }
+
     public static function getPages(): array
     {
         return [
