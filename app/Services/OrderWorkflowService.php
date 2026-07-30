@@ -259,7 +259,15 @@ class OrderWorkflowService
                 'notes'           => $notes,
             ]);
 
-            $warehouseId = \App\Models\Warehouse::first()?->id ?? 1;
+            $warehouse = \App\Models\Warehouse::first();
+            if (! $warehouse) {
+                $warehouse = \App\Models\Warehouse::create([
+                    'code'    => 'GD-01',
+                    'name'    => 'Gudang Utama',
+                    'address' => 'Jl. Industri No. 1, Jakarta',
+                ]);
+            }
+            $warehouseId = $warehouse->id;
 
             foreach ($so->items as $item) {
                 ShipmentItem::create([
