@@ -56,6 +56,9 @@ Route::post('/logout', [PortalAuthController::class, 'logout'])
 Route::get('/portal', [CustomerPortalController::class, 'catalog'])
     ->name('portal.catalog');
 
+Route::get('/invoices/{invoice}/pdf', [App\Http\Controllers\InvoicePdfController::class, 'download'])
+    ->name('invoice.pdf.download');
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Customer Portal — Protected (hanya customer)
 // ──────────────────────────────────────────────────────────────────────────────

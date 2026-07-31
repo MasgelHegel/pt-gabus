@@ -298,6 +298,23 @@ class InvoiceResource extends Resource
                             ->success()->send();
                     }),
 
+                // ── KIRIM WHATSAPP ────────────────────────────────────────
+                Actions\Action::make('send_whatsapp')
+                    ->label('Kirim WA')
+                    ->icon('heroicon-o-chat-bubble-left-right')
+                    ->color('success')
+                    ->url(fn (Invoice $record): ?string => $record->getWhatsAppUrl())
+                    ->openUrlInNewTab()
+                    ->visible(fn (Invoice $record): bool => ! empty($record->customer?->phone)),
+
+                // ── UNDUH PDF ─────────────────────────────────────────────
+                Actions\Action::make('download_pdf')
+                    ->label('Unduh PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('primary')
+                    ->url(fn (Invoice $record): string => \Illuminate\Support\Facades\URL::signedRoute('invoice.pdf.download', ['invoice' => $record->id]))
+                    ->openUrlInNewTab(),
+
                 // ── DETAIL ────────────────────────────────────────────────
                 Actions\ViewAction::make()->label('Detail'),
                 Actions\DeleteAction::make(),
