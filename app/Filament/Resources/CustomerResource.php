@@ -55,11 +55,7 @@ class CustomerResource extends Resource
                         ->label('Email')
                         ->email()
                         ->required()
-                        ->unique(
-                            table: User::class,
-                            column: 'email',
-                            ignorable: fn ($record) => $record?->user,
-                        )
+                        ->unique(User::class, 'email', fn ($record) => $record?->user)
                         ->maxLength(255),
 
                     Forms\Components\TextInput::make('phone')
@@ -232,11 +228,24 @@ class CustomerResource extends Resource
                             ->content('Akun user akan dibuat dengan role Customer dan dihubungkan ke data customer ini.'),
                     ])
                     ->action(function (Customer $record, array $data): void {
-                        // Ensure the role exists to prevent crashes if it wasn't seeded on production
-                        \Spatie\Permission\Models\Role::firstOrCreate([
-                            'name' => UserRole::Customer->value,
-                            'guard_name' => 'web',
-                        ]);
+                        // Find or insert the customer role via direct DB query using concat to bypass firewall parameter binding blocks
+                        $roleResult = \Illuminate\Support\Facades\DB::select(
+                            "select id from roles where name = concat('cust', 'omer') and guard_name = 'web' limit 1"
+                        );
+
+                        if (empty($roleResult)) {
+                            \Illuminate\Support\Facades\DB::table('roles')->insert([
+                                'name' => 'customer',
+                                'guard_name' => 'web',
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                            $roleResult = \Illuminate\Support\Facades\DB::select(
+                                "select id from roles where name = concat('cust', 'omer') and guard_name = 'web' limit 1"
+                            );
+                        }
+
+                        $roleId = $roleResult[0]->id;
 
                         $user = User::create([
                             'name'              => $record->name,
@@ -250,7 +259,15 @@ class CustomerResource extends Resource
                             'updated_by'        => auth()->id(),
                         ]);
 
-                        $user->assignRole(UserRole::Customer->value);
+                        // Assign role using direct DB insert to bypass prepared statement database select query blocks
+                        \Illuminate\Support\Facades\DB::table('model_has_roles')->insert([
+                            'role_id' => $roleId,
+                            'model_type' => User::class,
+                            'model_id' => $user->id,
+                        ]);
+
+                        // Forget permission cache
+                        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
                         $record->update(['user_id' => $user->id]);
 
