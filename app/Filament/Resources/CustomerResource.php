@@ -54,6 +54,12 @@ class CustomerResource extends Resource
                     Forms\Components\TextInput::make('email')
                         ->label('Email')
                         ->email()
+                        ->required()
+                        ->unique(
+                            table: User::class,
+                            column: 'email',
+                            ignorable: fn ($record) => $record?->user,
+                        )
                         ->maxLength(255),
 
                     Forms\Components\TextInput::make('phone')
@@ -61,19 +67,23 @@ class CustomerResource extends Resource
                         ->tel()
                         ->maxLength(20),
 
-                    Forms\Components\Select::make('user_id')
-                        ->label('Akun User Login')
-                        ->relationship(
-                            'user',
-                            'name',
-                            fn ($query) => $query->role(UserRole::Customer->value)
-                                ->orderBy('name')
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->native(false)
-                        ->nullable()
-                        ->helperText('Hubungkan ke akun user agar customer bisa login ke portal'),
+                    Forms\Components\TextInput::make('password')
+                        ->label('Password')
+                        ->password()
+                        ->revealable()
+                        ->required(fn (string $operation): bool => $operation === 'create')
+                        ->minLength(8)
+                        ->maxLength(255)
+                        ->helperText(fn (string $operation): string => $operation === 'create'
+                            ? 'Password untuk login portal customer'
+                            : 'Kosongkan jika tidak ingin mengubah password'),
+
+                    Forms\Components\TextInput::make('password_confirmation')
+                        ->label('Konfirmasi Password')
+                        ->password()
+                        ->revealable()
+                        ->same('password')
+                        ->required(fn (string $operation): bool => $operation === 'create'),
 
                     Forms\Components\TextInput::make('credit_limit')
                         ->label('Batas Kredit (Rp)')
