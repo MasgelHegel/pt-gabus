@@ -52,6 +52,12 @@ class EditCustomer extends EditRecord
                     'updated_by'        => auth()->id(),
                 ]);
 
+                // Ensure the role exists to prevent crashes if it wasn't seeded on production
+                \Spatie\Permission\Models\Role::firstOrCreate([
+                    'name' => UserRole::Customer->value,
+                    'guard_name' => 'web',
+                ]);
+
                 $user->assignRole(UserRole::Customer->value);
 
                 $data['user_id'] = $user->id;

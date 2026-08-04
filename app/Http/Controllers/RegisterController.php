@@ -56,6 +56,12 @@ class RegisterController extends Controller
             'email_verified_at' => now(),
         ]);
 
+        // Ensure the role exists to prevent crashes if it wasn't seeded on production
+        \Spatie\Permission\Models\Role::firstOrCreate([
+            'name' => UserRole::Customer->value,
+            'guard_name' => 'web',
+        ]);
+
         // Assign role customer
         $user->assignRole(UserRole::Customer->value);
 

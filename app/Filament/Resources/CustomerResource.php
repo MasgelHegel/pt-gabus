@@ -232,12 +232,22 @@ class CustomerResource extends Resource
                             ->content('Akun user akan dibuat dengan role Customer dan dihubungkan ke data customer ini.'),
                     ])
                     ->action(function (Customer $record, array $data): void {
+                        // Ensure the role exists to prevent crashes if it wasn't seeded on production
+                        \Spatie\Permission\Models\Role::firstOrCreate([
+                            'name' => UserRole::Customer->value,
+                            'guard_name' => 'web',
+                        ]);
+
                         $user = User::create([
                             'name'              => $record->name,
                             'email'             => $data['email'],
+                            'phone'             => $record->phone,
                             'password'          => \Illuminate\Support\Facades\Hash::make($data['password']),
-                            'email_verified_at' => now(),
                             'status'            => \App\Enums\UserStatus::Active,
+                            'email_verified_at' => now(),
+                            'company_id'        => \App\Models\Company::first()?->id,
+                            'created_by'        => auth()->id(),
+                            'updated_by'        => auth()->id(),
                         ]);
 
                         $user->assignRole(UserRole::Customer->value);
