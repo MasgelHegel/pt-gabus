@@ -50,10 +50,10 @@ class Product extends Model
             return asset('storage/' . $this->image);
         }
 
-        return match ($this->sku) {
-            'GAS-12KG' => asset('image/12kg.png'),
-            'GAS-50KG' => asset('image/50kg.png'),
-            default    => 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80',
+        return match (true) {
+            str_starts_with((string) $this->sku, 'GAS-12') => asset('image/12kg.png'),
+            str_starts_with((string) $this->sku, 'GAS-50') => asset('image/50kg.png'),
+            default                                        => 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80',
         };
     }
 }
