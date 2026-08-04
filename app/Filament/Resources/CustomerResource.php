@@ -213,7 +213,7 @@ class CustomerResource extends Resource
                             ->email()
                             ->required()
                             ->default(fn (Customer $r) => $r->email ?? '')
-                            ->unique('users', 'email'),
+                            ->unique('users', 'email', null, false),
 
                         Forms\Components\TextInput::make('password')
                             ->label('Password')
