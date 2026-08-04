@@ -55,7 +55,7 @@ class CustomerResource extends Resource
                         ->label('Email')
                         ->email()
                         ->required()
-                        ->unique(User::class, 'email', fn ($record) => $record?->user)
+                        ->unique(User::class, 'email', fn ($record) => $record?->user, false)
                         ->maxLength(255),
 
                     Forms\Components\TextInput::make('phone')
