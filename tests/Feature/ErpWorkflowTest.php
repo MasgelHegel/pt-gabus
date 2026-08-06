@@ -112,3 +112,29 @@ test('invoice due date is generated based on customer due period days', function
     $expectedDueDate = now()->addDays(15)->toDateString();
     expect($so->invoice->due_date->toDateString())->toBe($expectedDueDate);
 });
+
+test('invoice due date matches custom due date when provided during approval', function () {
+    $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+    $this->seed(\Database\Seeders\DatabaseSeeder::class);
+
+    $customerUser = User::where('email', 'customer@gabus.test')->first();
+    $adminUser    = User::role(\App\Enums\UserRole::Admin->value)->first();
+    $customer     = Customer::where('user_id', $customerUser->id)->first();
+    $product      = Product::first();
+
+    /** @var OrderWorkflowService $service */
+    $service = app(OrderWorkflowService::class);
+
+    $order = $service->createCustomerOrder($customer->id, [
+        ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 100000],
+    ]);
+
+    // Define custom due date
+    $customDueDate = \Carbon\Carbon::parse('2026-12-25');
+
+    // Approve the order (will auto-create invoice with custom due date)
+    $so = $service->adminApproveOrder($order, $adminUser->id, 0.0, null, $customDueDate);
+
+    // Verify invoice due date matches custom due date exactly
+    expect($so->invoice->due_date->toDateString())->toBe('2026-12-25');
+});

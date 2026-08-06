@@ -214,8 +214,8 @@ class OrderResource extends Resource
                             ->label('Jatuh Tempo Invoice')
                             ->required()
                             ->native(false)
+                            ->format('Y-m-d')
                             ->default(fn (Order $record) => now()->addDays($record->customer?->due_period_days ?? 30)->format('Y-m-d'))
-                            ->minDate(now()->toDateString())
                             ->displayFormat('d/m/Y')
                             ->helperText('Tentukan kapan invoice harus dibayar oleh customer.'),
 
@@ -242,7 +242,21 @@ class OrderResource extends Resource
                             ->content('Setelah approve: Sales Order + Invoice + Piutang customer dibuat otomatis.'),
                     ])
                     ->action(function (Order $record, array $data, OrderWorkflowService $service): void {
-                        $dueDate = \Carbon\Carbon::parse($data['due_date']);
+                        $dueDateRaw = $data['due_date'];
+                        if ($dueDateRaw instanceof \DateTimeInterface) {
+                            $dueDate = \Carbon\Carbon::instance($dueDateRaw)->startOfDay();
+                        } else {
+                            if (str_contains((string) $dueDateRaw, '/')) {
+                                try {
+                                    $dueDate = \Carbon\Carbon::createFromFormat('d/m/Y', (string) $dueDateRaw)->startOfDay();
+                                } catch (\Exception $e) {
+                                    $dueDate = \Carbon\Carbon::parse((string) $dueDateRaw)->startOfDay();
+                                }
+                            } else {
+                                $dueDate = \Carbon\Carbon::parse((string) $dueDateRaw)->startOfDay();
+                            }
+                        }
+
                         $dueDays = (int) now()->diffInDays($dueDate, false);
                         $dueDays = max(1, $dueDays);
 
@@ -250,7 +264,7 @@ class OrderResource extends Resource
                             $record->update(['sales_id' => $data['sales_id']]);
                         }
 
-                        $so = $service->adminApproveOrder($record, (int) auth()->id(), 0.0, $dueDays);
+                        $so = $service->adminApproveOrder($record, (int) auth()->id(), 0.0, $dueDays, $dueDate);
 
                         Notification::make()
                             ->title("Order Diapprove! SO #{$so->so_number} Dibuat")

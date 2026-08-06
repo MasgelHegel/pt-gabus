@@ -60,14 +60,14 @@ class OrderWorkflowService
     // ─────────────────────────────────────────────────────────────────────────
     // 2. Admin approve → auto buat Sales Order + Invoice + Piutang
     // ─────────────────────────────────────────────────────────────────────────
-    public function adminApproveOrder(Order $order, int $approvedBy, float $taxRate = 0.0, ?int $dueDays = null): SalesOrder
+    public function adminApproveOrder(Order $order, int $approvedBy, float $taxRate = 0.0, ?int $dueDays = null, ?\Carbon\Carbon $dueDate = null): SalesOrder
     {
         $oldStatus = $order->status;
 
         $order->loadMissing('customer');
         $resolvedDueDays = $dueDays ?? $order->customer?->due_period_days ?? 30;
 
-        return DB::transaction(function () use ($order, $approvedBy, $oldStatus, $resolvedDueDays) {
+        return DB::transaction(function () use ($order, $approvedBy, $oldStatus, $resolvedDueDays, $dueDate) {
             $order->loadMissing(['items.product', 'customer']);
 
             $subtotal  = (float) $order->total_amount;
@@ -104,7 +104,7 @@ class OrderWorkflowService
             $order->update(['status' => OrderStatus::SOCreated]);
 
             // Auto-create Invoice
-            $invoice = $this->createInvoiceFromSO($so, $resolvedDueDays);
+            $invoice = $this->createInvoiceFromSO($so, $resolvedDueDays, $dueDate);
 
             // Auto-create Piutang
             Customer::where('id', $so->customer_id)
@@ -471,7 +471,7 @@ class OrderWorkflowService
         );
     }
 
-    private function createInvoiceFromSO(SalesOrder $so, int $dueDays = 30): Invoice
+    private function createInvoiceFromSO(SalesOrder $so, int $dueDays = 30, ?\Carbon\Carbon $dueDate = null): Invoice
     {
         $so->loadMissing('items');
 
@@ -484,7 +484,7 @@ class OrderWorkflowService
             'sales_order_id' => $so->id,
             'customer_id'    => $so->customer_id,
             'invoice_date'   => now(),
-            'due_date'       => now()->addDays($dueDays),
+            'due_date'       => $dueDate ?? now()->addDays($dueDays),
             'subtotal'       => $so->subtotal,
             'tax_amount'     => 0,
             'total_amount'   => $so->total_amount,
