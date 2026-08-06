@@ -112,8 +112,7 @@ class PublicOrderController extends Controller
             }
 
             // ── Nomor order ──────────────────────────────────────────────
-            $orderNumber = 'ORD-' . now()->format('Ymd') . '-'
-                . str_pad((string) (Order::count() + 1), 4, '0', STR_PAD_LEFT);
+            $orderNumber = \App\Services\SequenceService::generate('orders', 'order_number', 'ORD-' . now()->format('Ymd') . '-');
 
             // ── Catatan untuk admin ──────────────────────────────────────
             $notes = "📍 Nama Dapur: {$validated['nama_dapur']}\n"

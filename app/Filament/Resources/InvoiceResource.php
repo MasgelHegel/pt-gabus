@@ -268,8 +268,7 @@ class InvoiceResource extends Resource
                             ->placeholder('Transfer BCA, nama pengirim, dsb.'),
                     ])
                     ->action(function (Invoice $record, array $data, OrderWorkflowService $service): void {
-                        $payNumber = 'PAY-' . now()->format('Ym') . '-'
-                            . str_pad((string) (Payment::count() + 1), 4, '0', STR_PAD_LEFT);
+                        $payNumber = \App\Services\SequenceService::generate('payments', 'payment_number', 'PAY-' . now()->format('Ym') . '-');
 
                         /** @var Payment $payment */
                         $payment = Payment::create([

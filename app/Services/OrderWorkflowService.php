@@ -74,8 +74,7 @@ class OrderWorkflowService
             $taxAmount = 0.0;
             $total     = $subtotal;
 
-            $soNumber = 'SO-' . now()->format('Ym') . '-'
-                . str_pad((string) (SalesOrder::count() + 1), 4, '0', STR_PAD_LEFT);
+            $soNumber = SequenceService::generate('sales_orders', 'so_number', 'SO-' . now()->format('Ym') . '-');
 
             /** @var SalesOrder $so */
             $so = SalesOrder::create([
@@ -129,8 +128,7 @@ class OrderWorkflowService
 
             $totalAmount = (float) $so->total_amount;
 
-            $poNumber = 'PO-' . now()->format('Ym') . '-'
-                . str_pad((string) (PurchaseOrder::count() + 1), 4, '0', STR_PAD_LEFT);
+            $poNumber = SequenceService::generate('purchase_orders', 'po_number', 'PO-' . now()->format('Ym') . '-');
 
             /** @var PurchaseOrder $po */
             $po = PurchaseOrder::create([
@@ -162,8 +160,7 @@ class OrderWorkflowService
     public function processGoodsReceipt(PurchaseOrder $po, int $warehouseId, int $receivedBy, ?string $notes = null): GoodsReceipt
     {
         return DB::transaction(function () use ($po, $warehouseId, $receivedBy, $notes) {
-            $receiptNumber = 'GR-' . now()->format('Ym') . '-'
-                . str_pad((string) (GoodsReceipt::count() + 1), 4, '0', STR_PAD_LEFT);
+            $receiptNumber = SequenceService::generate('goods_receipts', 'receipt_number', 'GR-' . now()->format('Ym') . '-');
 
             /** @var GoodsReceipt $receipt */
             $receipt = GoodsReceipt::create([
@@ -245,8 +242,7 @@ class OrderWorkflowService
         return DB::transaction(function () use ($so, $courier, $trackingNumber, $notes) {
             $so->loadMissing('items');
 
-            $shipNumber = 'SHP-' . now()->format('Ym') . '-'
-                . str_pad((string) (Shipment::count() + 1), 4, '0', STR_PAD_LEFT);
+            $shipNumber = SequenceService::generate('shipments', 'shipment_number', 'SHP-' . now()->format('Ym') . '-');
 
             /** @var Shipment $shipment */
             $shipment = Shipment::create([
@@ -402,8 +398,7 @@ class OrderWorkflowService
     public function uploadPaymentProof(Invoice $invoice, string $proofFile, float $amount): Payment
     {
         return DB::transaction(function () use ($invoice, $proofFile, $amount) {
-            $paymentNumber = 'PAY-' . now()->format('Ym') . '-'
-                . str_pad((string) (Payment::count() + 1), 4, '0', STR_PAD_LEFT);
+            $paymentNumber = SequenceService::generate('payments', 'payment_number', 'PAY-' . now()->format('Ym') . '-');
 
             /** @var Payment $payment */
             $payment = Payment::create([
@@ -475,8 +470,7 @@ class OrderWorkflowService
     {
         $so->loadMissing('items');
 
-        $invNumber = 'INV-' . now()->format('Ym') . '-'
-            . str_pad((string) (Invoice::count() + 1), 4, '0', STR_PAD_LEFT);
+        $invNumber = SequenceService::generate('invoices', 'invoice_number', 'INV-' . now()->format('Ym') . '-');
 
         /** @var Invoice $invoice */
         $invoice = Invoice::create([
