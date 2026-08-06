@@ -217,18 +217,28 @@ class OrderResource extends Resource
                             ->format('Y-m-d')
                             ->default(fn (Order $record) => now()->addDays($record->customer?->due_period_days ?? 30)->format('Y-m-d'))
                             ->displayFormat('d/m/Y')
-                            ->helperText('Tentukan kapan invoice harus dibayar oleh customer.'),
+                            ->helperText('Tentukan kapan invoice harus dibayar oleh customer.')
+                            ->live()
+                            ->afterStateUpdated(function ($state, $set) {
+                                if ($state) {
+                                    $dueDateStr = $state instanceof \DateTimeInterface 
+                                        ? $state->format('Y-m-d') 
+                                        : (string) $state;
+                                    $targetDate = now()->addDays(7)->format('Y-m-d');
+                                    if ($dueDateStr !== $targetDate) {
+                                        $set('due_preset', null);
+                                    } else {
+                                        $set('due_preset', '7');
+                                    }
+                                }
+                            }),
 
                         Forms\Components\Radio::make('due_preset')
                             ->label('Atau pilih cepat')
                             ->options([
                                 '7'  => '7 hari',
-                                '14' => '14 hari',
-                                '30' => '30 hari',
-                                '45' => '45 hari',
-                                '60' => '60 hari',
                             ])
-                            ->default(fn (Order $record) => (string) ($record->customer?->due_period_days ?? 30))
+                            ->default(fn (Order $record) => $record->customer?->due_period_days === 7 ? '7' : null)
                             ->inline()
                             ->live()
                             ->afterStateUpdated(function ($state, $set) {
