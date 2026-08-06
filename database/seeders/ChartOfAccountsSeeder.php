@@ -16,6 +16,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '1100', 'name' => 'Kas',               'type' => 'asset', 'is_cash_bank' => true],
             ['code' => '1110', 'name' => 'Bank BCA',           'type' => 'asset', 'is_cash_bank' => true],
             ['code' => '1111', 'name' => 'Bank Mandiri',       'type' => 'asset', 'is_cash_bank' => true],
+            ['code' => '1112', 'name' => 'Bank BRI',           'type' => 'asset', 'is_cash_bank' => true],
             ['code' => '1120', 'name' => 'Piutang Usaha',      'type' => 'asset', 'is_cash_bank' => false],
             ['code' => '1200', 'name' => 'Persediaan Barang',  'type' => 'asset', 'is_cash_bank' => false],
 

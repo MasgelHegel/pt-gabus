@@ -81,11 +81,15 @@ class Invoice extends Model
             $name = $payment->account->name;
             if (stripos($name, 'Mandiri') !== false) {
                 $bank = 'Mandiri';
-                $accountNo = '1560012345678'; // Placeholder Mandiri number
+                $accountNo = '1560024882443';
                 $accountName = 'Rizka Firlana';
             } elseif (stripos($name, 'BCA') !== false) {
                 $bank = 'BCA';
                 $accountNo = '8421573832';
+                $accountName = 'Rizka Firlana';
+            } elseif (stripos($name, 'BRI') !== false) {
+                $bank = 'BRI';
+                $accountNo = '093501060489534';
                 $accountName = 'Rizka Firlana';
             } else {
                 $bank = $name;
