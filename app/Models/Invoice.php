@@ -91,6 +91,14 @@ class Invoice extends Model
                 $bank = 'BRI';
                 $accountNo = '093501060489534';
                 $accountName = 'Rizka Firlana';
+            } elseif (stripos($name, 'BNI') !== false) {
+                $bank = 'BNI';
+                $accountNo = '2102718783';
+                $accountName = 'Rizka Firlana';
+            } elseif (stripos($name, 'BTN') !== false) {
+                $bank = 'BTN';
+                $accountNo = '18101500959311';
+                $accountName = 'Rizka Firlana';
             } else {
                 $bank = $name;
                 $accountNo = '—';

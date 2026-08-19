@@ -98,3 +98,58 @@ test('invoice getBankInformation returns BRI when payment linked to BRI account'
     expect($bankInfo['account_no'])->toBe('093501060489534');
     expect($bankInfo['account_name'])->toBe('Rizka Firlana');
 });
+
+test('invoice getBankInformation returns BNI when payment linked to BNI account', function () {
+    $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+    $this->seed(\Database\Seeders\DatabaseSeeder::class);
+
+    $invoice = createTestInvoice();
+    $customer = $invoice->customer;
+
+    // Retrieve already seeded BNI account
+    $bniAccount = Account::where('code', '1113')->firstOrFail();
+
+    $payment = Payment::create([
+        'payment_number' => 'PAY-TEST-003',
+        'invoice_id' => $invoice->id,
+        'customer_id' => $customer->id,
+        'account_id' => $bniAccount->id,
+        'amount' => 400000,
+        'payment_date' => now(),
+        'status' => \App\Enums\PaymentStatus::Verified->value,
+    ]);
+
+    $bankInfo = $invoice->getBankInformation();
+
+    expect($bankInfo['bank_name'])->toBe('BNI');
+    expect($bankInfo['account_no'])->toBe('2102718783');
+    expect($bankInfo['account_name'])->toBe('Rizka Firlana');
+});
+
+test('invoice getBankInformation returns BTN when payment linked to BTN account', function () {
+    $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+    $this->seed(\Database\Seeders\DatabaseSeeder::class);
+
+    $invoice = createTestInvoice();
+    $customer = $invoice->customer;
+
+    // Retrieve already seeded BTN account
+    $btnAccount = Account::where('code', '1114')->firstOrFail();
+
+    $payment = Payment::create([
+        'payment_number' => 'PAY-TEST-004',
+        'invoice_id' => $invoice->id,
+        'customer_id' => $customer->id,
+        'account_id' => $btnAccount->id,
+        'amount' => 400000,
+        'payment_date' => now(),
+        'status' => \App\Enums\PaymentStatus::Verified->value,
+    ]);
+
+    $bankInfo = $invoice->getBankInformation();
+
+    expect($bankInfo['bank_name'])->toBe('BTN');
+    expect($bankInfo['account_no'])->toBe('18101500959311');
+    expect($bankInfo['account_name'])->toBe('Rizka Firlana');
+});
+
