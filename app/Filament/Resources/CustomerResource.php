@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Enums\UserRole;
+use App\Exports\CustomersExport;
 use App\Filament\Resources\CustomerResource\Pages;
 use App\Models\Customer;
 use App\Models\User;
@@ -17,6 +18,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CustomerResource extends Resource
 {
@@ -326,6 +328,19 @@ class CustomerResource extends Resource
             ])
             ->bulkActions([
                 Actions\BulkActionGroup::make([
+                    Actions\BulkAction::make('export_selected')
+                        ->label('Ekspor Terpilih ke Excel')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('success')
+                        ->visible(fn () => auth()->user()?->hasAnyRole([UserRole::SuperAdmin->value, UserRole::Admin->value]))
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
+                            return Excel::download(
+                                new CustomersExport(
+                                    Customer::with('user')->whereIn('id', $records->pluck('id'))->orderBy('name')
+                                ),
+                                'data-customer-terpilih-' . now()->format('Ymd') . '.xlsx'
+                            );
+                        }),
                     Actions\DeleteBulkAction::make(),
                 ]),
             ]);
