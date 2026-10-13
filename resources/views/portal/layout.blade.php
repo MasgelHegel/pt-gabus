@@ -185,7 +185,12 @@
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof window.Echo === 'undefined') return;
 
-    const customerId = {{ auth()->user()->customer?->id ?? 'null' }};
+    @php
+        $currentCustomer = auth()->user()->relationLoaded('customer')
+            ? auth()->user()->customer
+            : \App\Models\Customer::where('user_id', auth()->id())->first();
+    @endphp
+    const customerId = {{ $currentCustomer?->id ?? 'null' }};
     if (! customerId) return;
 
     window.Echo.channel(`customer.${customerId}`)

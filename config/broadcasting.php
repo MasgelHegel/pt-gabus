@@ -2,7 +2,7 @@
 
 return [
 
-    'default' => env('BROADCAST_CONNECTION', 'reverb'),
+    'default' => env('BROADCAST_CONNECTION', env('REVERB_APP_KEY') ? 'reverb' : 'log'),
 
     'connections' => [
 

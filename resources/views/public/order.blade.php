@@ -524,7 +524,7 @@ footer strong{color:#fff}
           </div>
           @endif
 
-          <form method="POST" action="{{ route('order.store') }}" @submit.prevent="submitForm">
+          <form id="public-order-form" method="POST" action="{{ route('order.store') }}" @submit.prevent="submitForm">
             @csrf
             <div id="cart-inputs"></div>
 
@@ -698,7 +698,10 @@ function gasOrder() {
                 q.type = 'hidden'; q.name = 'jenis_tabung['+idx+'][qty]'; q.value = item.qty;
                 container.appendChild(q);
             });
-            this.$el.querySelector('form').submit();
+            const form = document.getElementById('public-order-form');
+            if (form) {
+                form.submit();
+            }
         },
         formatRp(v) {
             return new Intl.NumberFormat('id-ID').format(v || 0);

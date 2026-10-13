@@ -52,14 +52,6 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
 
     public function generateNumber(): string
     {
-        $prefix = 'ORD-' . now()->format('Ymd') . '-';
-        $last   = $this->model->newQuery()
-            ->where('order_number', 'like', $prefix . '%')
-            ->orderByDesc('order_number')
-            ->value('order_number');
-
-        $seq = $last ? ((int) substr($last, -4)) + 1 : 1;
-
-        return $prefix . str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
+        return \App\Services\SequenceService::generate('orders', 'order_number', 'ORD-' . now()->format('Ymd') . '-');
     }
 }

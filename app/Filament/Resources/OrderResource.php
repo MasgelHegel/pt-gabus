@@ -36,7 +36,10 @@ class OrderResource extends Resource
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('order_number')
-                        ->label('Nomor Order')->disabled(),
+                        ->label('Nomor Order')
+                        ->default(fn () => \App\Services\SequenceService::generate('orders', 'order_number', 'ORD-' . now()->format('Ymd') . '-'))
+                        ->disabled()
+                        ->dehydrated(),
 
                     Forms\Components\Select::make('customer_id')
                         ->relationship('customer', 'name')
@@ -48,10 +51,11 @@ class OrderResource extends Resource
 
                     Forms\Components\Select::make('status')
                         ->options(OrderStatus::options())
+                        ->default(OrderStatus::Submitted->value)
                         ->label('Status')->required()->native(false),
 
                     Forms\Components\TextInput::make('total_amount')
-                        ->label('Total Nominal')->numeric()->prefix('Rp')->disabled(),
+                        ->label('Total Nominal')->numeric()->prefix('Rp')->disabled()->dehydrated(),
 
                     Forms\Components\Textarea::make('notes')
                         ->label('Catatan Order')->columnSpanFull(),
@@ -65,26 +69,42 @@ class OrderResource extends Resource
                             Forms\Components\Select::make('product_id')
                                 ->relationship('product', 'name')
                                 ->label('Produk')
-                                ->disabled(),
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if ($product = \App\Models\Product::find($state)) {
+                                        $set('unit_price', (float) $product->sell_price);
+                                    }
+                                })
+                                ->disabled(fn (string $operation): bool => $operation !== 'create'),
                             Forms\Components\TextInput::make('quantity')
                                 ->label('Jumlah')
                                 ->numeric()
-                                ->disabled(),
+                                ->default(1)
+                                ->required()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    $price = (float) $get('unit_price');
+                                    $set('subtotal', ((int) $state) * $price);
+                                })
+                                ->disabled(fn (string $operation): bool => $operation !== 'create'),
                             Forms\Components\TextInput::make('unit_price')
                                 ->label('Harga Satuan')
                                 ->numeric()
                                 ->prefix('Rp')
-                                ->disabled(),
+                                ->disabled()
+                                ->dehydrated(),
                             Forms\Components\TextInput::make('subtotal')
                                 ->label('Subtotal')
                                 ->numeric()
                                 ->prefix('Rp')
-                                ->disabled(),
+                                ->disabled()
+                                ->dehydrated(),
                         ])
                         ->columns(4)
-                        ->disabled()
-                        ->addable(false)
-                        ->deletable(false)
+                        ->disabled(fn (string $operation): bool => $operation !== 'create')
+                        ->addable(fn (string $operation): bool => $operation === 'create')
+                        ->deletable(fn (string $operation): bool => $operation === 'create')
                         ->reorderable(false)
                         ->columnSpanFull(),
                 ]),

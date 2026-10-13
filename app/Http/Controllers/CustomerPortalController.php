@@ -187,6 +187,25 @@ class CustomerPortalController extends Controller
         if (! auth()->check()) {
             return null;
         }
-        return $this->customerRepo->findByUserId(auth()->id());
+
+        $user = auth()->user();
+        $customer = $this->customerRepo->findByUserId($user->id);
+
+        if (! $customer && $user->isCustomer()) {
+            $customer = \App\Models\Customer::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'code'            => \App\Services\SequenceService::generate('customers', 'code', 'CST-'),
+                    'name'            => $user->name,
+                    'email'           => $user->email,
+                    'phone'           => $user->phone ?? '',
+                    'company_name'    => $user->name,
+                    'credit_limit'    => 0,
+                    'piutang_balance' => 0,
+                ]
+            );
+        }
+
+        return $customer;
     }
 }

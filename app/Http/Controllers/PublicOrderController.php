@@ -65,31 +65,34 @@ class PublicOrderController extends Controller
 
             // ── Customer record ──────────────────────────────────────────
             if ($user && $user->isCustomer()) {
-                $customer = Customer::firstOrCreate(
-                    ['user_id' => $user->id],
-                    [
-                        'code'            => 'CUST-' . str_pad((string) $user->id, 4, '0', STR_PAD_LEFT),
+                $customer = Customer::where('user_id', $user->id)->first();
+                if (! $customer) {
+                    $customer = Customer::create([
+                        'user_id'         => $user->id,
+                        'code'            => \App\Services\SequenceService::generate('customers', 'code', 'CST-'),
                         'name'            => $user->name,
                         'email'           => $user->email,
                         'phone'           => $validated['no_hp'],
                         'company_name'    => $validated['nama_dapur'],
                         'credit_limit'    => 0,
                         'piutang_balance' => 0,
-                    ]
-                );
+                    ]);
+                }
             } else {
-                $customer = Customer::firstOrCreate(
-                    ['phone' => $validated['no_hp']],
-                    [
-                        'code'            => 'PUB-' . strtoupper(substr(preg_replace('/\s+/', '', $validated['nama_dapur']), 0, 8)) . '-' . rand(100, 999),
+                $customer = Customer::where('phone', $validated['no_hp'])->first();
+                if (! $customer) {
+                    $prefix = 'PUB-' . strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $validated['nama_dapur']) ?: 'GUEST', 0, 6)) . '-';
+                    $customer = Customer::create([
+                        'code'            => \App\Services\SequenceService::generate('customers', 'code', $prefix),
                         'name'            => $validated['nama_dapur'],
                         'company_name'    => $validated['nama_dapur'],
                         'email'           => null,
+                        'phone'           => $validated['no_hp'],
                         'address'         => $validated['alamat'] ?? '',
                         'credit_limit'    => 0,
                         'piutang_balance' => 0,
-                    ]
-                );
+                    ]);
+                }
             }
 
             // ── Hitung total ─────────────────────────────────────────────
@@ -115,10 +118,13 @@ class PublicOrderController extends Controller
             $orderNumber = \App\Services\SequenceService::generate('orders', 'order_number', 'ORD-' . now()->format('Ymd') . '-');
 
             // ── Catatan untuk admin ──────────────────────────────────────
+            $alamat = $validated['alamat'] ?? null;
+            $catatan = $validated['catatan'] ?? null;
+
             $notes = "📍 Nama Dapur: {$validated['nama_dapur']}\n"
                 . "📞 No HP: {$validated['no_hp']}\n"
-                . ($validated['alamat'] ? "🏠 Alamat: {$validated['alamat']}\n" : '')
-                . ($validated['catatan'] ? "💬 Catatan: {$validated['catatan']}" : '');
+                . ($alamat ? "🏠 Alamat: {$alamat}\n" : '')
+                . ($catatan ? "💬 Catatan: {$catatan}" : '');
 
             // ── Simpan order ─────────────────────────────────────────────
             $order = Order::create([

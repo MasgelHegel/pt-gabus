@@ -37,7 +37,7 @@ class OrderSubmitted implements ShouldBroadcast
             'order_number' => $this->order->order_number,
             'customer_name' => $this->order->customer?->name,
             'total_amount' => (float) $this->order->total_amount,
-            'status' => $this->order->status->value,
+            'status' => $this->order->status instanceof \BackedEnum ? $this->order->status->value : (string) $this->order->status,
             'created_at' => $this->order->created_at?->toISOString(),
         ];
     }

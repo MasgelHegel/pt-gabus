@@ -30,6 +30,18 @@ class Order extends Model
         'total_amount' => 'decimal:2',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $order): void {
+            if (empty($order->order_number)) {
+                $order->order_number = \App\Services\SequenceService::generate('orders', 'order_number', 'ORD-' . now()->format('Ymd') . '-');
+            }
+            if ($order->total_amount === null) {
+                $order->total_amount = 0;
+            }
+        });
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

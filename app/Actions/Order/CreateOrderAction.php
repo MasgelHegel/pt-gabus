@@ -44,7 +44,11 @@ class CreateOrderAction
 
         $order->load('items.product', 'customer');
 
-        OrderSubmitted::dispatch($order);
+        try {
+            OrderSubmitted::dispatch($order);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal broadcast OrderSubmitted: ' . $e->getMessage());
+        }
 
         return $order;
     }
