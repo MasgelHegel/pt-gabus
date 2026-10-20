@@ -8,6 +8,7 @@ use App\Enums\OrderStatus;
 use App\Events\OrderStatusChanged;
 use App\Filament\Resources\OrderResource\Pages;
 use App\Models\Order;
+use App\Models\User;
 use App\Services\OrderWorkflowService;
 use Filament\Actions;
 use Filament\Forms;
@@ -18,6 +19,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Log;
 
 class OrderResource extends Resource
 {
@@ -214,17 +216,36 @@ class OrderResource extends Resource
                         Forms\Components\Select::make('sales_id')
                             ->label('Sales Handler')
                             ->options(function () {
-                                $salesRoleId = \Illuminate\Support\Facades\DB::table('roles')
-                                    ->where('name', 'sales')->value('id');
-                                if (! $salesRoleId) return [];
-                                return \Illuminate\Support\Facades\DB::table('model_has_roles')
-                                    ->join('users', 'users.id', '=', 'model_has_roles.model_id')
-                                    ->where('model_has_roles.role_id', $salesRoleId)
-                                    ->whereNull('users.deleted_at')
-                                    ->pluck('users.name', 'users.id')
+                                $salesUsers = User::role('sales')
+                                    ->whereNull('deleted_at')
+                                    ->pluck('name', 'id')
                                     ->toArray();
+
+                                if (empty($salesUsers)) {
+                                    $salesUsers = User::whereHas('roles', fn ($q) => $q->whereIn('name', ['sales', 'admin', 'super_admin']))
+                                        ->whereNull('deleted_at')
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                }
+
+                                if (auth()->check() && ! isset($salesUsers[auth()->id()])) {
+                                    $salesUsers[auth()->id()] = auth()->user()->name;
+                                }
+
+                                return $salesUsers;
                             })
-                            ->default(fn (Order $record) => $record->sales_id)
+                            ->default(function (Order $record) {
+                                if ($record->sales_id) {
+                                    return $record->sales_id;
+                                }
+
+                                $currentUser = auth()->user();
+                                if ($currentUser?->hasRole('sales')) {
+                                    return $currentUser->id;
+                                }
+
+                                return User::role('sales')->whereNull('deleted_at')->value('id') ?? $currentUser?->id;
+                            })
                             ->required()
                             ->searchable()
                             ->native(false)
@@ -272,10 +293,10 @@ class OrderResource extends Resource
                             ->content('Setelah approve: Sales Order + Invoice + Piutang customer dibuat otomatis.'),
                     ])
                     ->action(function (Order $record, array $data, OrderWorkflowService $service): void {
-                        $dueDateRaw = $data['due_date'];
+                        $dueDateRaw = $data['due_date'] ?? null;
                         if ($dueDateRaw instanceof \DateTimeInterface) {
                             $dueDate = \Carbon\Carbon::instance($dueDateRaw)->startOfDay();
-                        } else {
+                        } elseif (! empty($dueDateRaw)) {
                             if (str_contains((string) $dueDateRaw, '/')) {
                                 try {
                                     $dueDate = \Carbon\Carbon::createFromFormat('d/m/Y', (string) $dueDateRaw)->startOfDay();
@@ -285,6 +306,8 @@ class OrderResource extends Resource
                             } else {
                                 $dueDate = \Carbon\Carbon::parse((string) $dueDateRaw)->startOfDay();
                             }
+                        } else {
+                            $dueDate = now()->addDays($record->customer?->due_period_days ?? 30)->startOfDay();
                         }
 
                         $dueDays = (int) now()->diffInDays($dueDate, false);
@@ -327,7 +350,11 @@ class OrderResource extends Resource
                             'notes'  => $data['notes'],
                         ]);
 
-                        OrderStatusChanged::dispatch($record->fresh(), $oldStatus, $record->status);
+                        try {
+                            OrderStatusChanged::dispatch($record->fresh(), $oldStatus, $record->status);
+                        } catch (\Throwable $e) {
+                            Log::warning('Gagal broadcast OrderStatusChanged pada reject order: ' . $e->getMessage());
+                        }
 
                         Notification::make()
                             ->title("Order {$record->order_number} Ditolak")
@@ -372,7 +399,13 @@ class OrderResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('view-orders') ?? false;
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        return $user->can('view-orders')
+            || $user->hasAnyRole([\App\Enums\UserRole::Sales->value, \App\Enums\UserRole::Accounting->value, \App\Enums\UserRole::SuperAdmin->value]);
     }
 
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool

@@ -30,6 +30,7 @@ use App\Models\SalesOrderItem;
 use App\Models\Shipment;
 use App\Models\ShipmentItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OrderWorkflowService
 {
@@ -52,7 +53,11 @@ class OrderWorkflowService
 
         $order = $order->fresh();
 
-        OrderStatusChanged::dispatch($order, $oldStatus, $order->status);
+        try {
+            OrderStatusChanged::dispatch($order, $oldStatus, $order->status);
+        } catch (\Throwable $e) {
+            Log::warning('Gagal broadcast OrderStatusChanged pada salesReviewOrder: ' . $e->getMessage());
+        }
 
         return $order;
     }
@@ -112,7 +117,11 @@ class OrderWorkflowService
             // Jurnal: Dr Piutang Usaha / Cr Pendapatan Penjualan
             $this->journalInvoiceCreated($invoice, $total);
 
-            OrderStatusChanged::dispatch($order->fresh(), $oldStatus, $order->status);
+            try {
+                OrderStatusChanged::dispatch($order->fresh(), $oldStatus, $order->status);
+            } catch (\Throwable $e) {
+                Log::warning('Gagal broadcast OrderStatusChanged pada adminApproveOrder: ' . $e->getMessage());
+            }
 
             return $so->fresh(['items.product', 'customer', 'invoice']);
         });
@@ -305,7 +314,11 @@ class OrderWorkflowService
 
         $shipment = $shipment->fresh();
 
-        ShipmentConfirmed::dispatch($shipment);
+        try {
+            ShipmentConfirmed::dispatch($shipment);
+        } catch (\Throwable $e) {
+            Log::warning('Gagal broadcast ShipmentConfirmed: ' . $e->getMessage());
+        }
 
         return $shipment;
     }
@@ -378,7 +391,11 @@ class OrderWorkflowService
         });
 
         if ($isApproved) {
-            PaymentVerified::dispatch($result);
+            try {
+                PaymentVerified::dispatch($result);
+            } catch (\Throwable $e) {
+                Log::warning('Gagal broadcast PaymentVerified: ' . $e->getMessage());
+            }
         }
 
         return $result;
@@ -428,8 +445,14 @@ class OrderWorkflowService
     private function journalInvoiceCreated(Invoice $invoice, float $amount): void
     {
         // Akun 1120 = Piutang Usaha, 4100 = Pendapatan Penjualan
-        $receivable = Account::where('code', '1120')->first();
-        $revenue    = Account::where('code', '4100')->first();
+        $receivable = Account::firstOrCreate(
+            ['code' => '1120'],
+            ['name' => 'Piutang Usaha', 'type' => 'asset', 'is_cash_bank' => false]
+        );
+        $revenue = Account::firstOrCreate(
+            ['code' => '4100'],
+            ['name' => 'Pendapatan Penjualan', 'type' => 'revenue', 'is_cash_bank' => false]
+        );
 
         if (! $receivable || ! $revenue) {
             return;
@@ -450,7 +473,10 @@ class OrderWorkflowService
         $cash       = $accountId
             ? Account::find($accountId)
             : Account::where('is_cash_bank', true)->first();
-        $receivable = Account::where('code', '1120')->first();
+        $receivable = Account::firstOrCreate(
+            ['code' => '1120'],
+            ['name' => 'Piutang Usaha', 'type' => 'asset', 'is_cash_bank' => false]
+        );
 
         if (! $cash || ! $receivable) {
             return;

@@ -152,7 +152,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $salesPerms = [
             'view-dashboard',
             'view-customers',   'manage-customers',
-            'view-orders',      'manage-orders',
+            'view-orders',      'manage-orders',    'approve-orders',
             'view-sales-orders', 'manage-sales-orders',
             'view-payments',    'manage-payments',  'verify-payments',
             'view-reports',

@@ -138,3 +138,59 @@ test('invoice due date matches custom due date when provided during approval', f
     // Verify invoice due date matches custom due date exactly
     expect($so->invoice->due_date->toDateString())->toBe('2026-12-25');
 });
+
+test('sales user can approve customer order even if broadcasting fails', function () {
+    $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+    $this->seed(\Database\Seeders\DatabaseSeeder::class);
+
+    $customerUser = User::where('email', 'customer@gabus.test')->first();
+    $salesUser    = User::where('email', 'sales@gabus.test')->first();
+    $customer     = Customer::where('user_id', $customerUser->id)->first();
+    $product      = Product::first();
+
+    /** @var OrderWorkflowService $service */
+    $service = app(OrderWorkflowService::class);
+
+    $order = $service->createCustomerOrder($customer->id, [
+        ['product_id' => $product->id, 'quantity' => 2, 'unit_price' => 150000],
+    ], 'Customer order to be approved by sales');
+
+    expect($order->status)->toBe(OrderStatus::Submitted);
+    expect($order->sales_id)->toBeNull();
+
+    // Configure broadcast to an unreachable host to simulate cloud deployment with no Reverb daemon
+    config([
+        'broadcasting.default' => 'reverb',
+        'queue.default' => 'sync',
+        'broadcasting.connections.reverb.options.host' => '127.0.0.1',
+        'broadcasting.connections.reverb.options.port' => 8999, // unreachable port
+    ]);
+
+    // Sales approves the order
+    $so = $service->adminApproveOrder($order, $salesUser->id, 0.0, 30);
+
+    // Verify SO was created and order status transitioned
+    expect($order->fresh()->status)->toBe(OrderStatus::SOCreated);
+    expect($so)->not->toBeNull();
+    expect($so->approved_by)->toBe($salesUser->id);
+    expect($so->invoice)->not->toBeNull();
+    expect((float) $customer->fresh()->piutang_balance)->toBe(300000.0);
+    expect(\App\Models\JournalEntry::where('reference', $so->invoice->invoice_number)->exists())->toBeTrue();
+});
+
+test('sales user has view-orders, manage-orders, and approve-orders permissions', function () {
+    $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+
+    $sales = User::factory()->create();
+    $sales->assignRole(\App\Enums\UserRole::Sales->value);
+
+    expect($sales->can('view-orders'))->toBeTrue();
+    expect($sales->can('manage-orders'))->toBeTrue();
+    expect($sales->can('approve-orders'))->toBeTrue();
+    expect(\App\Filament\Resources\OrderResource::canAccess())->toBeFalse(); // guest is false
+
+    $this->actingAs($sales);
+    expect(\App\Filament\Resources\OrderResource::canAccess())->toBeTrue();
+    expect(\App\Filament\Resources\SalesOrderResource::canAccess())->toBeTrue();
+});
+

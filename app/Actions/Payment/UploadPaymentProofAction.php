@@ -41,7 +41,11 @@ class UploadPaymentProofAction
 
         $payment = $payment->fresh(['invoice', 'customer']);
 
-        PaymentUploaded::dispatch($payment);
+        try {
+            PaymentUploaded::dispatch($payment);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal broadcast PaymentUploaded: ' . $e->getMessage());
+        }
 
         return $payment;
     }

@@ -299,7 +299,13 @@ class SalesOrderResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('view-sales-orders') ?? false;
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        return $user->can('view-sales-orders')
+            || $user->hasAnyRole([\App\Enums\UserRole::Sales->value, \App\Enums\UserRole::Accounting->value, \App\Enums\UserRole::SuperAdmin->value]);
     }
 
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool

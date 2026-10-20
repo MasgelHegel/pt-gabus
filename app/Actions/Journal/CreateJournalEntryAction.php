@@ -21,8 +21,7 @@ class CreateJournalEntryAction
     ): JournalEntry {
         return DB::transaction(function () use ($description, $lines, $reference, $createdBy) {
 
-            $entryNumber = 'JRN-' . now()->format('Ymd') . '-'
-                . str_pad((string) (JournalEntry::count() + 1), 4, '0', STR_PAD_LEFT);
+            $entryNumber = \App\Services\SequenceService::generate('journal_entries', 'entry_number', 'JRN-' . now()->format('Ymd') . '-');
 
             /** @var JournalEntry $entry */
             $entry = JournalEntry::create([
