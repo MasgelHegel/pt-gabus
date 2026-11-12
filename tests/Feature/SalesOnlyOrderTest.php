@@ -79,3 +79,58 @@ test('order cannot be created without choosing a customer', function () {
         ->call('create')
         ->assertHasFormErrors(['customer_id' => 'required']);
 });
+
+test('choosing status Sales Order Dibuat creates the sales order, invoice and receivable', function () {
+    $sales = User::where('email', 'sales@gabus.test')->first();
+    $customer = Customer::where('code', 'CUST-001')->first();
+    $product = Product::where('sku', 'GAS-12KG')->first();
+
+    $this->actingAs($sales);
+
+    Livewire::test(CreateOrder::class)
+        ->fillForm([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::SOCreated->value,
+            'items' => [[
+                'product_id' => $product->id,
+                'quantity' => 2,
+                'unit_price' => (float) $product->sell_price,
+                'subtotal' => 2 * (float) $product->sell_price,
+            ]],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $order = \App\Models\Order::first();
+    $so = \App\Models\SalesOrder::where('order_id', $order->id)->first();
+
+    expect($order->status)->toBe(OrderStatus::SOCreated)
+        ->and($so)->not->toBeNull()
+        ->and((float) $so->total_amount)->toBe(2 * (float) $product->sell_price)
+        ->and(\App\Models\Invoice::where('sales_order_id', $so->id)->exists())->toBeTrue()
+        ->and((float) $customer->fresh()->piutang_balance)->toBe(2 * (float) $product->sell_price);
+});
+
+test('other statuses are saved as chosen and do not create a sales order', function () {
+    $sales = User::where('email', 'sales@gabus.test')->first();
+    $customer = Customer::where('code', 'CUST-001')->first();
+    $product = Product::where('sku', 'GAS-12KG')->first();
+
+    $this->actingAs($sales);
+
+    Livewire::test(CreateOrder::class)
+        ->fillForm([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::SalesReviewed->value,
+            'items' => [[
+                'product_id' => $product->id,
+                'quantity' => 1,
+                'unit_price' => (float) $product->sell_price,
+                'subtotal' => (float) $product->sell_price,
+            ]],
+        ])
+        ->call('create');
+
+    expect(\App\Models\Order::first()->status)->toBe(OrderStatus::SalesReviewed)
+        ->and(\App\Models\SalesOrder::count())->toBe(0);
+});

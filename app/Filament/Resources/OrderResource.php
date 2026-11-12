@@ -150,6 +150,43 @@ class OrderResource extends Resource
     }
 
     /**
+     * Jika sales menetapkan status "Sales Order Dibuat", jalankan alur approve yang sama
+     * dengan tombol Approve: buat Sales Order + Invoice + Piutang + Jurnal, sehingga
+     * order langsung muncul di halaman Sales Order. Status lain disimpan apa adanya.
+     * Jatuh tempo invoice mengikuti pengaturan customer (due_period_days).
+     */
+    public static function createSalesOrderIfNeeded(Order $order): void
+    {
+        $order->refresh();
+
+        if ($order->status !== OrderStatus::SOCreated || $order->salesOrder()->exists()) {
+            return;
+        }
+
+        try {
+            // Status dikembalikan ke "approved" agar alur approve membuat SO dengan benar
+            $order->update(['status' => OrderStatus::AdminApproved]);
+
+            $so = app(OrderWorkflowService::class)->adminApproveOrder($order, (int) auth()->id());
+
+            Notification::make()
+                ->title("Sales Order {$so->so_number} berhasil dibuat")
+                ->body('Invoice dan piutang customer ikut dibuat otomatis.')
+                ->success()
+                ->send();
+        } catch (\Throwable $e) {
+            Log::error('Gagal membuat Sales Order dari form order: ' . $e->getMessage());
+            $order->update(['status' => OrderStatus::SalesReviewed]);
+
+            Notification::make()
+                ->title('Sales Order gagal dibuat')
+                ->body('Order tersimpan dengan status "Ditinjau Sales". Silakan coba Approve dari daftar order.')
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
      * Hitung ulang total order dari semua item (jumlah x harga satuan produk).
      */
     protected static function recalculateTotal(?array $items, callable $set, string $totalPath): void
