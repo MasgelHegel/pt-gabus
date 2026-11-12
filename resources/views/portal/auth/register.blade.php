@@ -192,7 +192,7 @@ input::placeholder{color:#CBD5E1;font-weight:400}
 
       <p class="terms">
         Dengan mendaftar, Anda menyetujui syarat & ketentuan<br>
-        <a href="{{ route('order.create') }}">← Kembali ke halaman pesan gas</a>
+        <a href="{{ route('home') }}">← Kembali ke beranda</a>
       </p>
 
     </div>

@@ -44,12 +44,40 @@ class OrderResource extends Resource
                         ->dehydrated(),
 
                     Forms\Components\Select::make('customer_id')
-                        ->relationship('customer', 'name')
-                        ->label('Customer')->required(),
+                        ->label('Customer / SPPG yang Memesan')
+                        ->helperText('Pilih SPPG/customer terlebih dahulu agar jelas pesanan masuk dari siapa dan dikirim ke mana.')
+                        ->relationship(
+                            'customer',
+                            'name',
+                            modifyQueryUsing: fn ($query) => $query->orderBy('name'),
+                        )
+                        ->getOptionLabelFromRecordUsing(fn (\App\Models\Customer $record): string =>
+                            collect([
+                                $record->name,
+                                $record->company_name && $record->company_name !== $record->name ? "({$record->company_name})" : null,
+                                $record->address ? '— ' . \Illuminate\Support\Str::limit($record->address, 60) : null,
+                            ])->filter()->implode(' ')
+                        )
+                        ->searchable(['name', 'company_name', 'phone', 'code'])
+                        ->preload()
+                        ->live()
+                        ->required(),
+
+                    Forms\Components\Placeholder::make('customer_address')
+                        ->label('Alamat Pengiriman')
+                        ->content(fn (callable $get): string =>
+                            ($c = \App\Models\Customer::find($get('customer_id')))
+                                ? trim(($c->address ?: 'Alamat belum diisi di data customer') . ($c->phone ? " · Telp: {$c->phone}" : ''))
+                                : '— Pilih customer terlebih dahulu —'
+                        ),
 
                     Forms\Components\Select::make('sales_id')
                         ->relationship('sales', 'name')
-                        ->label('Sales Handler')->nullable(),
+                        ->label('Sales Handler')
+                        ->default(fn () => auth()->user()?->hasRole(\App\Enums\UserRole::Sales->value) ? auth()->id() : null)
+                        ->disabled(fn () => (bool) auth()->user()?->hasRole(\App\Enums\UserRole::Sales->value))
+                        ->dehydrated()
+                        ->nullable(),
 
                     Forms\Components\Select::make('status')
                         ->options(OrderStatus::options())
@@ -67,6 +95,8 @@ class OrderResource extends Resource
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
+                        ->minItems(1)
+                        ->required()
                         ->schema([
                             Forms\Components\Select::make('product_id')
                                 ->relationship('product', 'name')
@@ -406,6 +436,20 @@ class OrderResource extends Resource
 
         return $user->can('view-orders')
             || $user->hasAnyRole([\App\Enums\UserRole::Sales->value, \App\Enums\UserRole::Accounting->value, \App\Enums\UserRole::SuperAdmin->value]);
+    }
+
+    /**
+     * Order hanya dibuat oleh tim internal (sales). Customer tidak bisa order sendiri.
+     */
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) $user && $user->hasAnyRole([
+            \App\Enums\UserRole::Sales->value,
+            \App\Enums\UserRole::Accounting->value,
+            \App\Enums\UserRole::SuperAdmin->value,
+        ]);
     }
 
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool

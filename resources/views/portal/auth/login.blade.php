@@ -376,8 +376,6 @@
             <div class="back-link">
                 Belum punya akun? &nbsp;
                 <a href="{{ route('register') }}">Daftar sekarang →</a>
-                &nbsp;&middot;&nbsp;
-                <a href="{{ route('order.create') }}">Pesan tanpa akun →</a>
             </div>
         </div>
     </div>

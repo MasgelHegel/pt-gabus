@@ -18,7 +18,7 @@ class PortalAuthController extends Controller
         if (Auth::check()) {
             $user = Auth::user();
             if ($user->hasRole(UserRole::Customer->value)) {
-                return redirect()->route('portal.orders.create');
+                return redirect()->route('portal.orders.index');
             }
             // Staff/admin yang buka /portal/login → ke admin
             return redirect('/admin');
@@ -52,7 +52,7 @@ class PortalAuthController extends Controller
         $request->session()->regenerate();
 
         if ($user->hasRole(UserRole::Customer->value)) {
-            return redirect()->intended(route('portal.orders.create'));
+            return redirect()->intended(route('portal.orders.index'));
         }
 
         return redirect()->intended('/admin');

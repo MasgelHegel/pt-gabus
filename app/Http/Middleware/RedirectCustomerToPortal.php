@@ -27,7 +27,7 @@ class RedirectCustomerToPortal
 
         // User sudah login sebagai customer → tendang ke portal
         if ($user && $user->hasRole(UserRole::Customer->value)) {
-            return redirect()->route('portal.orders.create')
+            return redirect()->route('portal.orders.index')
                 ->with('info', 'Gunakan Portal Customer untuk mengakses layanan.');
         }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Http\Controllers\CustomerPortalController;
 use App\Http\Controllers\PortalAuthController;
-use App\Http\Controllers\PublicOrderController;
 use App\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,13 +11,6 @@ use Illuminate\Support\Facades\Route;
 // Root — halaman pemilih role
 // ──────────────────────────────────────────────────────────────────────────────
 Route::get('/', fn () => view('welcome'))->name('home');
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Public Order Gas — tanpa login
-// ──────────────────────────────────────────────────────────────────────────────
-Route::get('/order', [PublicOrderController::class, 'create'])->name('order.create');
-Route::post('/order', [PublicOrderController::class, 'store'])->name('order.store');
-Route::get('/order/sukses', [PublicOrderController::class, 'success'])->name('order.success');
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Register Customer
@@ -69,12 +61,6 @@ Route::middleware(['auth', \App\Http\Middleware\EnsureIsCustomer::class])
 
         Route::get('/orders', [CustomerPortalController::class, 'orders'])
             ->name('orders.index');
-
-        Route::get('/orders/create', [CustomerPortalController::class, 'createOrder'])
-            ->name('orders.create');
-
-        Route::post('/orders', [CustomerPortalController::class, 'storeOrder'])
-            ->name('orders.store');
 
         Route::get('/invoices', [CustomerPortalController::class, 'invoices'])
             ->name('invoices.index');

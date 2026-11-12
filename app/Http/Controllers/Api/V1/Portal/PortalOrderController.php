@@ -57,54 +57,6 @@ class PortalOrderController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
-    {
-        $customer = $this->customerRepo->findByUserId($request->user()->id);
-        if (! $customer) {
-            return ApiResponse::notFound('Data customer tidak ditemukan');
-        }
-
-        $data = $request->validate([
-            'items'               => ['required', 'array', 'min:1'],
-            'items.*.product_id'  => ['required', 'integer', 'exists:products,id'],
-            'items.*.quantity'    => ['required', 'integer', 'min:1'],
-            'notes'               => ['nullable', 'string', 'max:500'],
-        ]);
-
-        // Enrich with prices from DB
-        $items = collect($data['items'])->map(function ($item) {
-            $product = \App\Models\Product::findOrFail($item['product_id']);
-
-            if ($product->stock < $item['quantity']) {
-                throw ValidationException::withMessages([
-                    'items' => ["Stok {$product->name} tidak mencukupi (tersedia: {$product->stock})"],
-                ]);
-            }
-
-            return [
-                'product_id' => $product->id,
-                'quantity'   => $item['quantity'],
-                'unit_price' => (float) $product->sell_price,
-            ];
-        })->toArray();
-
-        $order = $this->orderService->createCustomerOrder($customer->id, $items, $data['notes'] ?? null);
-
-        return ApiResponse::created([
-            'id'           => $order->id,
-            'order_number' => $order->order_number,
-            'whatsapp_url' => $order->getWhatsAppUrl(),
-            'status'       => ['value' => $order->status->value, 'label' => $order->status->label()],
-            'total_amount' => (float) $order->total_amount,
-            'items'        => $order->items->map(fn ($i) => [
-                'product_name' => $i->product->name,
-                'quantity'     => $i->quantity,
-                'unit_price'   => (float) $i->unit_price,
-                'subtotal'     => (float) $i->subtotal,
-            ]),
-        ], 'Order berhasil dibuat');
-    }
-
     public function show(Request $request, int $id): JsonResponse
     {
         $customer = $this->customerRepo->findByUserId($request->user()->id);

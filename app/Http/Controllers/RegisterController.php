@@ -20,7 +20,7 @@ class RegisterController extends Controller
     public function show(): View|RedirectResponse
     {
         if (Auth::check() && Auth::user()->hasRole(UserRole::Customer->value)) {
-            return redirect()->route('portal.orders.create');
+            return redirect()->route('portal.orders.index');
         }
 
         return view('portal.auth.register');
@@ -83,7 +83,7 @@ class RegisterController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('portal.orders.create')
-            ->with('success', 'Selamat datang, ' . $user->name . '! Akun Anda berhasil dibuat. Silakan mulai pesan gas.');
+        return redirect()->route('portal.orders.index')
+            ->with('success', 'Selamat datang, ' . $user->name . '! Akun Anda berhasil dibuat. Pesanan gas dibuat oleh tim Sales kami.');
     }
 }

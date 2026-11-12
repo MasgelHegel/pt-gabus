@@ -82,12 +82,6 @@
 
             <!-- Nav links -->
             <nav class="hidden md:flex items-center gap-1">
-                <a href="{{ route('portal.orders.create') }}"
-                   class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition
-                          {{ request()->routeIs('portal.orders.create') ? 'bg-blue-600 text-white shadow shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                    Order
-                </a>
                 <a href="{{ route('portal.orders.index') }}"
                    class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition
                           {{ request()->routeIs('portal.orders.*') ? 'bg-blue-600 text-white shadow shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
@@ -129,12 +123,6 @@
 
         <!-- Mobile nav -->
         <div class="md:hidden border-t border-slate-800 flex">
-            <a href="{{ route('portal.orders.create') }}"
-               class="flex-1 flex flex-col items-center py-2 text-xs font-medium gap-0.5
-                      {{ request()->routeIs('portal.orders.create') ? 'text-blue-400' : 'text-slate-500' }}">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-                Order
-            </a>
             <a href="{{ route('portal.orders.index') }}"
                class="flex-1 flex flex-col items-center py-2 text-xs font-medium gap-0.5
                       {{ request()->routeIs('portal.orders.*') ? 'text-blue-400' : 'text-slate-500' }}">

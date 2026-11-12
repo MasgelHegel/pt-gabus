@@ -76,54 +76,6 @@ class CustomerPortalController extends Controller
         return back()->with('success', 'Barang telah dikonfirmasi diterima. Menunggu verifikasi sales.');
     }
 
-    public function createOrder(): View
-    {
-        $products   = Product::with('category')
-            ->whereHas('category', fn ($q) => $q->where('slug', 'gas-lpg'))
-            ->orderBy('name')
-            ->get();
-        $categories = Category::orderBy('name')->get();
-
-        return view('portal.create-order', compact('products', 'categories'));
-    }
-
-    public function storeOrder(Request $request): RedirectResponse
-    {
-        $customer = $this->getCustomer();
-        if (! $customer) {
-            return back()->withErrors(['error' => 'Data customer tidak ditemukan']);
-        }
-
-        $data = $request->validate([
-            'items'              => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'items.*.quantity'   => ['required', 'integer', 'min:1'],
-            'notes'              => ['nullable', 'string', 'max:500'],
-        ]);
-
-        $items = collect($data['items'])->map(function ($item) {
-            $product = Product::findOrFail($item['product_id']);
-            return [
-                'product_id' => $product->id,
-                'quantity'   => $item['quantity'],
-                'unit_price' => (float) $product->sell_price,
-            ];
-        })->toArray();
-
-        $order = $this->orderService->createCustomerOrder(
-            $customer->id,
-            $items,
-            $data['notes'] ?? null
-        );
-
-        return redirect()
-            ->route('portal.orders.index')
-            ->with([
-                'success' => "Order #{$order->order_number} berhasil dibuat!",
-                'whatsapp_order_number' => $order->order_number,
-            ]);
-    }
-
     public function invoices(Request $request): View
     {
         $customer = $this->getCustomer();

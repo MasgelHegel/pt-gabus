@@ -59,7 +59,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
             // Orders
             Route::prefix('orders')->name('orders.')->group(function (): void {
                 Route::get('/', [PortalOrderController::class, 'index'])->name('index');
-                Route::post('/', [PortalOrderController::class, 'store'])->name('store');
                 Route::get('{id}', [PortalOrderController::class, 'show'])->name('show');
             });
 
