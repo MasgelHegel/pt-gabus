@@ -67,7 +67,8 @@ test('sales creates an order and chooses which customer ordered', function () {
     expect($order->customer_id)->toBe($customer->id)
         ->and($order->sales_id)->toBe($sales->id)
         ->and($order->status)->toBe(OrderStatus::Submitted)
-        ->and($order->items)->toHaveCount(1);
+        ->and($order->items)->toHaveCount(1)
+        ->and((float) $order->total_amount)->toBe(3 * (float) $product->sell_price);
 });
 
 test('order cannot be created without choosing a customer', function () {

@@ -33,7 +33,7 @@ class OrderResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Schemas\Components\Section::make('Informasi Order')
                 ->columns(2)
                 ->schema([
@@ -52,11 +52,9 @@ class OrderResource extends Resource
                             modifyQueryUsing: fn ($query) => $query->orderBy('name'),
                         )
                         ->getOptionLabelFromRecordUsing(fn (\App\Models\Customer $record): string =>
-                            collect([
-                                $record->name,
-                                $record->company_name && $record->company_name !== $record->name ? "({$record->company_name})" : null,
-                                $record->address ? '— ' . \Illuminate\Support\Str::limit($record->address, 60) : null,
-                            ])->filter()->implode(' ')
+                            $record->company_name && $record->company_name !== $record->name
+                                ? "{$record->name} ({$record->company_name})"
+                                : $record->name
                         )
                         ->searchable(['name', 'company_name', 'phone', 'code'])
                         ->preload()
@@ -96,28 +94,36 @@ class OrderResource extends Resource
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->minItems(1)
+                        ->defaultItems(1)
                         ->required()
+                        ->live()
+                        ->afterStateUpdated(fn (callable $get, callable $set) => static::recalculateTotal($get('items'), $set, 'total_amount'))
                         ->schema([
                             Forms\Components\Select::make('product_id')
                                 ->relationship('product', 'name')
                                 ->label('Produk')
                                 ->required()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set) {
-                                    if ($product = \App\Models\Product::find($state)) {
-                                        $set('unit_price', (float) $product->sell_price);
-                                    }
+                                ->searchable()
+                                ->preload()
+                                ->live()
+                                ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                    $price = (float) (\App\Models\Product::find($state)?->sell_price ?? 0);
+                                    $qty   = max(1, (int) ($get('quantity') ?: 1));
+                                    $set('unit_price', $price);
+                                    $set('subtotal', $qty * $price);
+                                    static::recalculateTotal($get('../../items'), $set, '../../total_amount');
                                 })
                                 ->disabled(fn (string $operation): bool => $operation !== 'create'),
                             Forms\Components\TextInput::make('quantity')
                                 ->label('Jumlah')
                                 ->numeric()
+                                ->minValue(1)
                                 ->default(1)
                                 ->required()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $price = (float) $get('unit_price');
-                                    $set('subtotal', ((int) $state) * $price);
+                                ->live(debounce: 300)
+                                ->afterStateUpdated(function ($state, callable $get, callable $set) {
+                                    $set('subtotal', max(0, (int) $state) * (float) $get('unit_price'));
+                                    static::recalculateTotal($get('../../items'), $set, '../../total_amount');
                                 })
                                 ->disabled(fn (string $operation): bool => $operation !== 'create'),
                             Forms\Components\TextInput::make('unit_price')
@@ -141,6 +147,18 @@ class OrderResource extends Resource
                         ->columnSpanFull(),
                 ]),
         ]);
+    }
+
+    /**
+     * Hitung ulang total order dari semua item (jumlah x harga satuan produk).
+     */
+    protected static function recalculateTotal(?array $items, callable $set, string $totalPath): void
+    {
+        $total = collect($items ?? [])->sum(
+            fn ($item) => max(0, (int) ($item['quantity'] ?? 0)) * (float) ($item['unit_price'] ?? 0)
+        );
+
+        $set($totalPath, $total);
     }
 
     public static function table(Table $table): Table
