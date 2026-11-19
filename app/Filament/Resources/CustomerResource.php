@@ -154,9 +154,8 @@ class CustomerResource extends Resource
 
                 Tables\Columns\TextColumn::make('piutang_balance')
                     ->label('Total Piutang')
-                    ->money('IDR')
                     ->badge()
-                    ->formatStateUsing(fn ($state): float => max(0.0, (float) $state))
+                    ->formatStateUsing(fn ($state): string => 'IDR '.number_format(max(0.0, (float) $state), 0, ',', '.'))
                     ->color(fn (Customer $r): string =>
                         (float) $r->piutang_balance > 0 ? 'warning' : 'success'
                     )
