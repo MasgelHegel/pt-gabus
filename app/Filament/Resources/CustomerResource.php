@@ -156,6 +156,7 @@ class CustomerResource extends Resource
                     ->label('Total Piutang')
                     ->money('IDR')
                     ->badge()
+                    ->formatStateUsing(fn ($state): float => max(0.0, (float) $state))
                     ->color(fn (Customer $r): string =>
                         (float) $r->piutang_balance > 0 ? 'warning' : 'success'
                     )

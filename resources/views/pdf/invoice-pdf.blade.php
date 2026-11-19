@@ -219,7 +219,7 @@
                     {{ $invoice->customer->address }}<br>
                 @endif
                 <br>
-                Nama Customer : {{ $invoice->customer?->name ?? '—' }}
+                Nama Customer : {{ $invoice->customer?->name ?? $invoice->salesOrder?->customer?->name ?? '—' }}
             </td>
             <td class="invoice-meta">
                 <table>

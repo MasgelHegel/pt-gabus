@@ -29,7 +29,7 @@ class InvoicesExport implements FromQuery, WithHeadings, WithMapping, WithColumn
             return $this->query;
         }
 
-        return Invoice::with(['customer', 'latestPayment', 'items.product'])
+        return Invoice::with(['customer', 'salesOrder.customer', 'latestPayment', 'items.product'])
             ->orderBy('invoice_date', 'desc')
             ->orderBy('id', 'desc');
     }
@@ -58,7 +58,7 @@ class InvoicesExport implements FromQuery, WithHeadings, WithMapping, WithColumn
 
         return [
             $invoice->invoice_number,
-            $invoice->customer?->name ?? '-',
+            $invoice->customer?->name ?? $invoice->salesOrder?->customer?->name ?? '-',
             $itemsStr,
             $invoice->invoice_date->format('d/m/Y'),
             $invoice->due_date->format('d/m/Y'),

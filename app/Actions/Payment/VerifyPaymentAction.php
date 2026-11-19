@@ -20,6 +20,8 @@ class VerifyPaymentAction
         /** @var Payment $payment */
         $payment = Payment::with(['invoice'])->findOrFail($paymentId);
 
+        $wasAlreadyVerified = $payment->status === PaymentStatus::Verified;
+
         $payment->update([
             'status'      => PaymentStatus::Verified,
             'account_id'  => $accountId,
@@ -30,8 +32,10 @@ class VerifyPaymentAction
         // Update invoice to paid
         $payment->invoice->update(['status' => InvoiceStatus::Paid]);
 
-        // Kurangi piutang customer
-        $this->customerRepo->decrementPiutang($payment->customer_id, (float) $payment->amount);
+        // Kurangi piutang customer (hanya saat transisi ke Verified, bukan verifikasi ulang)
+        if (! $wasAlreadyVerified) {
+            $this->customerRepo->decrementPiutang($payment->customer_id, (float) $payment->amount);
+        }
 
         // Fire event untuk journal otomatis → akan ditangani observer
         // event(new PaymentVerified($payment));

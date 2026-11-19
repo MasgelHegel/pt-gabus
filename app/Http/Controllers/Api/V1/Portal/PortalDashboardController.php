@@ -28,7 +28,7 @@ class PortalDashboardController extends Controller
         }
 
         $stats = [
-            'piutang_balance' => (float) $customer->piutang_balance,
+            'piutang_balance' => max(0.0, (float) $customer->piutang_balance),
             'credit_limit'    => (float) $customer->credit_limit,
             'total_orders'    => Order::where('customer_id', $customer->id)->count(),
             'pending_orders'  => Order::where('customer_id', $customer->id)

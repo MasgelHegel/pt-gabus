@@ -6,6 +6,7 @@ namespace App\Repositories;
 
 use App\Contracts\Repositories\CustomerRepositoryInterface;
 use App\Models\Customer;
+use Illuminate\Support\Facades\DB;
 
 /** @extends BaseRepository<Customer> */
 class CustomerRepository extends BaseRepository implements CustomerRepositoryInterface
@@ -38,6 +39,9 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
     {
         $this->model->newQuery()
             ->where('id', $customerId)
-            ->decrement('piutang_balance', $amount);
+            ->update([
+                // CASE (bukan GREATEST) agar portable antara MySQL dan SQLite
+                'piutang_balance' => DB::raw("CASE WHEN piutang_balance - {$amount} > 0 THEN piutang_balance - {$amount} ELSE 0 END"),
+            ]);
     }
 }

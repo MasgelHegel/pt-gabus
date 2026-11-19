@@ -47,7 +47,7 @@ class Invoice extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Customer::class)->withTrashed();
     }
 
     public function items(): HasMany
@@ -194,8 +194,11 @@ class Invoice extends Model
     {
         static::deleting(function (Invoice $invoice) {
             if ($invoice->status !== \App\Enums\InvoiceStatus::Paid && $invoice->status !== \App\Enums\InvoiceStatus::Cancelled) {
-                \App\Models\Customer::where('id', $invoice->customer_id)
-                    ->decrement('piutang_balance', (float) $invoice->total_amount);
+                \Illuminate\Support\Facades\DB::table('customers')
+                    ->where('id', $invoice->customer_id)
+                    ->update([
+                        'piutang_balance' => \Illuminate\Support\Facades\DB::raw('CASE WHEN piutang_balance - '.(float) $invoice->total_amount.' > 0 THEN piutang_balance - '.(float) $invoice->total_amount.' ELSE 0 END'),
+                    ]);
             }
 
             \App\Models\JournalEntry::where('reference', $invoice->invoice_number)->get()->each(function ($journal) {

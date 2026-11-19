@@ -361,6 +361,8 @@ class OrderWorkflowService
             $payment->loadMissing(['invoice', 'customer']);
 
             if ($isApproved) {
+                $wasAlreadyVerified = $payment->status === PaymentStatus::Verified;
+
                 $payment->update([
                     'status'      => PaymentStatus::Verified,
                     'account_id'  => $accountId,
@@ -371,9 +373,13 @@ class OrderWorkflowService
                 // Invoice → Lunas
                 $payment->invoice->update(['status' => InvoiceStatus::Paid]);
 
-                // Piutang customer berkurang
-                Customer::where('id', $payment->customer_id)
-                    ->decrement('piutang_balance', (float) $payment->amount);
+                // Piutang customer berkurang (hanya saat transisi ke Verified)
+                if (! $wasAlreadyVerified) {
+                    Customer::where('id', $payment->customer_id)
+                        ->update([
+                            'piutang_balance' => DB::raw('CASE WHEN piutang_balance - '.(float) $payment->amount.' > 0 THEN piutang_balance - '.(float) $payment->amount.' ELSE 0 END'),
+                        ]);
+                }
 
                 // Jurnal: Dr Kas/Bank / Cr Piutang Usaha
                 $this->journalPaymentVerified($payment, $accountId);
